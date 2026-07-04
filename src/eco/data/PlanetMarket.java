@@ -14,6 +14,9 @@ public class PlanetMarket{
     private PlanetAPI planet;
     private MarketAPI market;
     private FactionAPI faction;
+    // 逐工业 产能/消耗
+    private Map<String, Map<Industry, Integer>> supplyBreakdown = new LinkedHashMap<>();
+    private Map<String, Map<Industry, Integer>> demandBreakdown = new LinkedHashMap<>();
     // 产能/消耗 总和
     private Map<String, Integer> supply = new HashMap<>();
     private Map<String, Integer> demand = new HashMap<>();
@@ -48,6 +51,8 @@ public class PlanetMarket{
         demand.clear();
         rawProduction.clear();
         rawConsumption.clear();
+        supplyBreakdown.clear();
+        demandBreakdown.clear();
         for (CommodityOnMarketAPI item : market.getAllCommodities()) {
             if (item.isNonEcon() || item.getCommodity().isMeta()) continue;
 
@@ -55,14 +60,19 @@ public class PlanetMarket{
             int totalDemand = 0;
             boolean isPrimary = item.getCommodity().isPrimary();
             for (Industry ind : market.getIndustries()) {
-                totalSupply += ind.getSupply(item.getId()).getQuantity().getModifiedInt();
+                int supplyNum = (int) (ind.getSupply(item.getId()).getQuantity().getModifiedInt() * getPeopleScale(market.getSize()));
+                totalSupply += supplyNum;
+                if(supplyNum > 0){
+                    supplyBreakdown.computeIfAbsent(item.getId(), k -> new LinkedHashMap<>()).put(ind, supplyNum);
+                }
                 if (isPrimary) {
-                    totalDemand += ind.getDemand(item.getId()).getQuantity().getModifiedInt();
+                    int demandNum = (int) (ind.getDemand(item.getId()).getQuantity().getModifiedInt() * getPeopleScale(market.getSize()));
+                    totalDemand += demandNum;
+                    if(demandNum > 0){
+                        demandBreakdown.computeIfAbsent(item.getId(), k -> new LinkedHashMap<>()).put(ind, demandNum);
+                    }
                 }
             }
-            totalSupply = (int)(totalSupply * getPeopleScale(market.getSize()));
-            totalDemand  = (int)(totalDemand * getPeopleScale(market.getSize()));
-
             rawProduction.put(item.getId(), totalSupply);
             rawConsumption.put(item.getId(), totalDemand);
 
@@ -76,29 +86,19 @@ public class PlanetMarket{
     public int getDemand(String commodityId)    { return demand.getOrDefault(commodityId, 0); }
     public int getRawProduction(String commodityId) { return rawProduction.getOrDefault(commodityId, 0); }
     public int getRawConsumption(String commodityId) { return rawConsumption.getOrDefault(commodityId, 0); }
-    public MarketAPI getMarket() {
-        return market;
+    public MarketAPI getMarket() { return market; }
+    public StarSystemAPI getSystem() { return system; }
+    public PlanetAPI getPlanet() { return planet; }
+    public FactionAPI getFaction() { return faction; }
+    public List<TradePair> getSupplyTrade() { return supplyTrade; }
+    public List<TradePair> getDemandTrade() { return demandTrade; }
+    public void addSupplyTrade(TradePair supplyTradePair) { this.supplyTrade.add(supplyTradePair); }
+    public void addDemandTrade(TradePair demandTradePair) { this.demandTrade.add(demandTradePair); }
+    public Map<Industry, Integer> getSupplyBreakdown(String commodityId) {
+        return supplyBreakdown.getOrDefault(commodityId, Collections.emptyMap());
     }
-    public StarSystemAPI getSystem() {
-        return system;
-    }
-    public PlanetAPI getPlanet() {
-        return planet;
-    }
-    public FactionAPI getFaction() {
-        return faction;
-    }
-    public List<TradePair> getSupplyTrade() {
-        return supplyTrade;
-    }
-    public List<TradePair> getDemandTrade() {
-        return demandTrade;
-    }
-    public void addSupplyTrade(TradePair supplyTradePair) {
-        this.supplyTrade.add(supplyTradePair);
-    }
-    public void addDemandTrade(TradePair demandTradePair) {
-        this.demandTrade.add(demandTradePair);
+    public Map<Industry, Integer> getDemandBreakdown(String commodityId) {
+        return demandBreakdown.getOrDefault(commodityId, Collections.emptyMap());
     }
     public Set<String> getCommodityIds() {
         Set<String> ids = new HashSet<>();

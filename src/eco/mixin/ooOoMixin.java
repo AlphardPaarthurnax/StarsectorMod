@@ -1,4 +1,4 @@
-package eco;
+package eco.mixin;
 
 import com.fs.graphics.util.B;
 import com.fs.starfarer.api.campaign.econ.CommoditySpecAPI;

@@ -1,3 +1,4 @@
+/*
 package eco;
 
 import com.fs.starfarer.api.campaign.econ.CommodityOnMarketAPI;
@@ -7,25 +8,11 @@ import eco.data.PlanetMarket;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 
-/**
- * 市场份额弹窗混入（目标类：A = class_256，即 CommodityDetailDialogV2 表格中的单行）
- *
- * A.class 是混淆后的类名，其反混淆名为 class_256，
- * 位于 com.fs.starfarer.campaign.ui.marketinfo.cdd 包中。
- * 它继承自 class_248（即 com.fs.starfarer.campaign.ui.U）。
- *
- * 每行代表全星域中生产或消费某商品的一个市场。
- * 本混入替换 getSortQuantity() 方法，
- * 用我们计算的 PlanetMarket 供需值代替原版的 MaxSupply/MaxDemand。
- * 这样点击"数量"列头排序时，会按我们的经济数据排。
- */
+
 @Mixin(value = A.class)
 public abstract class CommodityDetailDialogV2Mixin {
 
-    /**
-     * @author CoreCracking
-     * @reason 用我们计算的经济数据替换排序用的数量值
-     */
+
     @Overwrite
     public int getSortQuantity() {
         // 将 this 强转为 A，以便调用 A 的公开方法（getMarket、getCommodity、getMode）
@@ -53,4 +40,4 @@ public abstract class CommodityDetailDialogV2Mixin {
             return commodity.getMaxDemand();
         }
     }
-}
+}*/

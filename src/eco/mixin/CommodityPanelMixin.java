@@ -1,4 +1,4 @@
-package eco;
+package eco.mixin;
 
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.econ.CommodityOnMarketAPI;
@@ -51,18 +51,11 @@ public abstract class CommodityPanelMixin extends voidsuper implements U, oo0O.o
 
     // reflect
     @Unique
-    private static Method createTooltip$super;
-    @Unique
     private static Field dialogState$super$interface$while;
-
     static{
         try {
-            createTooltip$super = CommodityTooltipFactory.class.getDeclaredMethod("super", CommodityOnMarketAPI.class);
-
             dialogState$super$interface$while = CommodityPanel.class.getDeclaredField("super.interface$while");
             dialogState$super$interface$while.setAccessible(true);
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException("CommodityPanelMixin 反射 方法 错误", e);
         } catch (NoSuchFieldException e) {
             throw new RuntimeException("CommodityPanelMixin 反射 属性 错误", e);
         }
@@ -103,7 +96,7 @@ public abstract class CommodityPanelMixin extends voidsuper implements U, oo0O.o
                 this.add(button).belowLeft(previousButton, rowGap);
             }
 
-            final StandardTooltipV2Expandable tooltip = CPM$createTooltip(commodity);
+            final StandardTooltipV2Expandable tooltip = CommodityTooltipCreator.createCommodityTooltip(commodity);
             button.setTooltip(0.0F, tooltip);
 
             final n finalButton = button;
@@ -158,14 +151,6 @@ public abstract class CommodityPanelMixin extends voidsuper implements U, oo0O.o
         }
 
         return commodityList;
-    }
-    @Unique
-    private StandardTooltipV2Expandable CPM$createTooltip(CommodityOnMarketAPI commodity) {
-        try {
-            return (StandardTooltipV2Expandable) createTooltip$super.invoke(null, commodity);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to invoke CommodityTooltipFactory.super()", e);
-        }
     }
     @Unique
     private void CPM$setDialogState() {
