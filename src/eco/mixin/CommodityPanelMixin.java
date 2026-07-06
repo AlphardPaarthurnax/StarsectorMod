@@ -85,7 +85,7 @@ public abstract class CommodityPanelMixin extends voidsuper implements U, oo0O.o
 
         n button;
         for(CommodityOnMarketAPI commodity : commodityList){
-            ooOo rowRenderer = new ooOo((CommodityOnMarket)commodity);
+            ItemLine rowRenderer = new ItemLine((CommodityOnMarket)commodity);
             button = Q.o00000(rowRenderer, this);
             button.setQuickMode(false);
             button.setSize(width - margin * 2.0F, rowHeight);
@@ -110,7 +110,7 @@ public abstract class CommodityPanelMixin extends voidsuper implements U, oo0O.o
     @Inject(method = "actionPerformed", at = @At("HEAD"), cancellable = true)
     public void replaceActionPerformed(Object source, Object target, CallbackInfo ci) {
         if (target instanceof n button) {
-            CommodityOnMarket commodity = ((ooOo)button.getPanel()).getCommodity();
+            CommodityOnMarket commodity = ((ItemLine)button.getPanel()).getCommodity();
             if (this.Ö0Ôo00 == null) {
                 CommodityDetailDialogV2 commodityDetail = new CommodityDetailDialogV2(commodity, this.Õ0Ôo00, this.Õ0Ôo00.getDialogParentForSubDialog(), this);
                 commodityDetail.show(0.3F, 0.2F);
@@ -141,7 +141,7 @@ public abstract class CommodityPanelMixin extends voidsuper implements U, oo0O.o
         });
 
         for (CommodityOnMarketAPI commodity : new ArrayList<>(commodityList)){
-            if (!commodity.isNonEcon() && commodity.getCommodity().isPrimary()) {
+            if (!commodity.isNonEcon()) {
                 if (commodity.getAvailableStat().getBaseValue() <= 0.0F && commodity.getMaxDemand() <= 0 && commodity.getMaxSupply() <= 0) {
                     commodityList.remove(commodity);
                 }

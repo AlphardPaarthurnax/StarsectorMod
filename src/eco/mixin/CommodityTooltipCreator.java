@@ -8,21 +8,14 @@ import com.fs.starfarer.api.campaign.econ.CommodityOnMarketAPI;
 import com.fs.starfarer.api.campaign.econ.CommoditySpecAPI;
 import com.fs.starfarer.api.campaign.econ.Industry;
 import com.fs.starfarer.api.campaign.econ.MarketAPI;
-import com.fs.starfarer.api.combat.MutableStat;
 import com.fs.starfarer.api.impl.SharedUnlockData;
-import com.fs.starfarer.api.impl.campaign.ids.Stats;
 import com.fs.starfarer.api.impl.codex.CodexDataV2;
 import com.fs.starfarer.api.loading.Description;
 import com.fs.starfarer.api.ui.Alignment;
-import com.fs.starfarer.api.ui.TooltipMakerAPI;
 import com.fs.starfarer.api.util.Misc;
-import com.fs.starfarer.campaign.econ.CommodityOnMarket;
-import com.fs.starfarer.campaign.econ.reach.CommodityMarketData;
-import com.fs.starfarer.campaign.econ.reach.MarketShareData;
 import com.fs.starfarer.campaign.ui.marketinfo.CommodityTooltipFactory;
 import com.fs.starfarer.campaign.ui.marketinfo.i;
 import com.fs.starfarer.loading.SpecStore;
-import com.fs.starfarer.settings.StarfarerSettings;
 import com.fs.starfarer.ui.d;
 import com.fs.starfarer.ui.impl.StandardTooltipV2Expandable;
 import com.fs.starfarer.ui.interfacenew;
@@ -31,13 +24,9 @@ import eco.data.PlanetMarket;
 import eco.data.TradePair;
 
 import java.awt.*;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 public class CommodityTooltipCreator {
     private static final Method createIconLine$super1;
@@ -171,116 +160,171 @@ public class CommodityTooltipCreator {
                     this.addCustom(createIconLine(commodity, com.fs.starfarer.campaign.ui.marketinfo.f.o.values()[2], "过剩，可自由获取但缺乏需求和出口。价格降低。", width, height), negaGap);
                     this.addCustom(createIconLine(commodity, com.fs.starfarer.campaign.ui.marketinfo.f.o.values()[5], "短缺，有需求但无法获取。价格升高。", width, height), negaGap);
                 } else {
-                    this.addSectionHeading("生产 与 需求", baseColor, darkColor, Alignment.MID, paragraphGap);
-                    ArrayList<Map.Entry<String, Integer>> supplyItemLines = new ArrayList<>();
-                    ArrayList<Map.Entry<String, Integer>> demandItemLines = new ArrayList<>();
-
                     PlanetMarket pm = SystemEconomyService.getPlanetMarket(market);
-                    int supplyItemNum = 0;
-                    int demandItemNum = 0;
-
                     if (pm != null) {
-                        supplyItemNum = pm.getRawProduction(commodityId);
-                        demandItemNum = pm.getRawConsumption(commodityId);
-                        for (Map.Entry<Industry, Integer> e : pm.getSupplyBreakdown(commodityId).entrySet()) {
+                        this.addSectionHeading("生产 与 需求", baseColor, darkColor, Alignment.MID, paragraphGap);
+                        ArrayList<Map.Entry<String, Integer>> supplyItemLines = new ArrayList<>();
+                        ArrayList<Map.Entry<String, Integer>> demandItemLines = new ArrayList<>();
+
+                        int supplyItemNum = 0;
+                        int demandItemNum = 0;
+
+
+                        supplyItemNum = pm.getSupplyRaw(commodityId);
+                        demandItemNum = pm.getDemandRaw(commodityId);
+                        for (Map.Entry<Industry, Integer> e : pm.getSupplyFactory(commodityId).entrySet()) {
                             supplyItemLines.add(new AbstractMap.SimpleEntry<>(e.getKey().getCurrentName(), e.getValue()));
                         }
-                        for (Map.Entry<Industry, Integer> e : pm.getDemandBreakdown(commodityId).entrySet()) {
+                        for (Map.Entry<Industry, Integer> e : pm.getDemandFactory(commodityId).entrySet()) {
                             demandItemLines.add(new AbstractMap.SimpleEntry<>(e.getKey().getCurrentName(), e.getValue()));
                         }
-                    }
 
-                    int availableItemNum = supplyItemNum - demandItemNum;
 
-                    supplyItemLines.sort((a, b)-> Integer.compare(b.getValue(), a.getValue()));
-                    demandItemLines.sort((a, b)-> Integer.compare(b.getValue(), a.getValue()));
+                        int availableItemNum = supplyItemNum - demandItemNum;
 
-                    Color demandColor = availableItemNum > 0 ? O0OO.ÕO0000 : O0OO.ÒÓ0000;
-                    this.addPara("净产值：{%s}", paragraphGap, demandColor, "" + availableItemNum);
+                        supplyItemLines.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
+                        demandItemLines.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
 
-                    if (supplyItemLines.isEmpty()) {
-                        this.addPara("无本地产出。", paragraphGap);
-                    } else {
-                        this.addPara("产量：{%s}", paragraphGap, highlightColor, "" + supplyItemNum);
-                        this.beginGridFlipped(450.0F, 1, 40.0F, paragraphGap);
-                        int gridLineIndex = 0;
-                        for (Map.Entry<String, Integer> itemLine : supplyItemLines) {
-                            this.addToGrid(0, gridLineIndex++, "生产方 " + itemLine.getKey(), formatDemandNumber(itemLine.getValue()), O0OO.ÕO0000);
+                        Color demandColor = availableItemNum > 0 ? O0OO.ÕO0000 : O0OO.ÒÓ0000;
+                        this.addPara("净产值：{%s}", paragraphGap, demandColor, "" + availableItemNum);
+
+                        if (supplyItemLines.isEmpty()) {
+                            this.addPara("无本地产出。", paragraphGap);
+                        } else {
+                            this.addPara("产量：{%s}", paragraphGap, highlightColor, "" + supplyItemNum);
+                            this.beginGridFlipped(450.0F, 1, 40.0F, paragraphGap);
+                            int gridLineIndex = 0;
+                            for (Map.Entry<String, Integer> itemLine : supplyItemLines) {
+                                this.addToGrid(0, gridLineIndex++, "生产方 " + itemLine.getKey(), formatDemandNumber(itemLine.getValue()), O0OO.ÕO0000);
+                            }
+                            this.addGrid(smallGap);
                         }
-                        this.addGrid(smallGap);
-                    }
-                    if (demandItemLines.isEmpty()) {
-                        this.addPara("无本地需求。", paragraphGap);
-                    } else {
-                        this.addPara("需求：{%s}", paragraphGap, highlightColor, "" + demandItemNum);
-                        this.beginGridFlipped(450.0F, 1, 40.0F, paragraphGap);
-                        int gridLineIndex = 0;
-                        for (Map.Entry<String, Integer> itemLine : demandItemLines) {
-                            this.addToGrid(0, gridLineIndex++, "需求方 " + itemLine.getKey(), formatDemandNumber(itemLine.getValue()), O0OO.ÒÓ0000);
+                        if (demandItemLines.isEmpty()) {
+                            this.addPara("无本地需求。", paragraphGap);
+                        } else {
+                            this.addPara("需求：{%s}", paragraphGap, highlightColor, "" + demandItemNum);
+                            this.beginGridFlipped(450.0F, 1, 40.0F, paragraphGap);
+                            int gridLineIndex = 0;
+                            for (Map.Entry<String, Integer> itemLine : demandItemLines) {
+                                this.addToGrid(0, gridLineIndex++, "需求方 " + itemLine.getKey(), formatDemandNumber(itemLine.getValue()), O0OO.ÒÓ0000);
+                            }
+                            this.addGrid(smallGap);
                         }
-                        this.addGrid(smallGap);
-                    }
 
-                    this.addPara("在本殖民地的供给关系中，只计算当地产量与消耗做差得到的净产出。", grayColor, paragraphGap);
+                        this.addPara("在本殖民地的供给关系中，只计算当地产量与消耗做差得到的净产出。", grayColor, paragraphGap);
 
-                    //进出口
+                        //进出口
 
-                    this.addSectionHeading("进口 与 出口", baseColor, darkColor, Alignment.MID, paragraphGap);
-                    ArrayList<TradePair> importTradePair = new ArrayList<>();
-                    ArrayList<TradePair> exportTradePair = new ArrayList<>();
+                        this.addSectionHeading("进口 与 出口", baseColor, darkColor, Alignment.MID, paragraphGap);
+                        ArrayList<TradePair> importTradePair = new ArrayList<>();
+                        ArrayList<TradePair> exportTradePair = new ArrayList<>();
 
-                    int importItemNum = 0;
-                    int exportItemNum = 0;
+                        int importItemNum = 0;
+                        int exportItemNum = 0;
 
-                    if (pm != null) {
+                        //进口
+                        for (TradePair tradePair : pm.getDemandTrade()) {
+                            if (Objects.equals(tradePair.getItemId(), commodityId)) {
+                                importTradePair.add(tradePair);
+                                importItemNum += tradePair.getItemNum();
+                            }
+                        }
+                        //出口
                         for (TradePair tradePair : pm.getSupplyTrade()) {
-                            if(Objects.equals(tradePair.getItemId(), commodityId)){
-                                if(tradePair.getToMarket() == market){
-                                    //进口
-                                    importTradePair.add(tradePair);
-                                    importItemNum += tradePair.getItemNum();
-                                } else if(tradePair.getFromMarket() == market) {
-                                    //出口
-                                    exportTradePair.add(tradePair);
-                                    exportItemNum += tradePair.getItemNum();
+                            if (Objects.equals(tradePair.getItemId(), commodityId)) {
+                                exportTradePair.add(tradePair);
+                                exportItemNum += tradePair.getItemNum();
+                            }
+                        }
+
+                        sortTradePairs(importTradePair, faction, market.getStarSystem(), true);
+                        sortTradePairs(exportTradePair, faction, market.getStarSystem(), false);
+
+                        if (importTradePair.isEmpty()) {
+                            this.addPara("无进口订单。", paragraphGap);
+                        } else {
+                            this.addPara("进口量：{%s}", paragraphGap, highlightColor, "" + importItemNum);
+                            this.beginGridFlipped(450.0F, 1, 40.0F, paragraphGap);
+                            int gridLineIndex = 0;
+                            for (TradePair tradePair : importTradePair) {
+                                this.addToGrid(0, gridLineIndex++,
+                                        "从 " + ((tradePair.getFromSystem() == faction) ? "本星系" : tradePair.getFromSystem().getName()) + " "
+                                                + tradePair.getFromPlanet().getName() + "("
+                                                + ((tradePair.getFromFaction() == faction) ? "本势力" : tradePair.getFromFaction().getDisplayName())
+                                                + ") 购买", formatDemandNumber(tradePair.getItemNum()), O0OO.ÕO0000);
+                            }
+                            this.addGrid(smallGap);
+                        }
+
+                        if (exportTradePair.isEmpty()) {
+                            this.addPara("无出口订单。", paragraphGap);
+                        } else {
+                            this.addPara("出口量：{%s}", paragraphGap, highlightColor, "" + exportItemNum);
+                            this.beginGridFlipped(450.0F, 1, 40.0F, paragraphGap);
+                            int gridLineIndex = 0;
+                            for (TradePair tradePair : exportTradePair) {
+                                this.addToGrid(0, gridLineIndex++,
+                                        "向 " + ((tradePair.getToSystem() == faction) ? "本星系" : tradePair.getToSystem().getName()) + " "
+                                                + tradePair.getToPlanet().getName() + "("
+                                                + ((tradePair.getToFaction() == faction) ? "本势力" : tradePair.getToFaction().getDisplayName())
+                                                + ") 出售", formatDemandNumber(tradePair.getItemNum()), O0OO.ÕO0000);
+                            }
+                            this.addGrid(smallGap);
+                        }
+
+                        int systemFactionSupply = 0, systemNonHostileSupply = 0, systemHostileSupply = 0;
+                        int factionSupply = 0, nonHostileSupply = 0, hostileSupply = 0;
+                        int systemFactionDemand = 0, systemNonHostileDemand = 0, systemHostileDemand = 0;
+                        int factionDemand = 0, nonHostileDemand = 0, hostileDemand = 0;
+
+
+
+                        systemFactionSupply = SystemEconomyService.getUnmetSupply().getOrDefault(commodityId, Collections.emptyMap()).getOrDefault(faction, Collections.emptyMap()).getOrDefault(market.getStarSystem(), 0);
+                        for(Map.Entry<StarSystemAPI, Integer> si : SystemEconomyService.getUnmetSupply().getOrDefault(commodityId, Collections.emptyMap()).getOrDefault(faction, Collections.emptyMap()).entrySet()){
+                            factionSupply += si.getValue();
+                        }
+                        for(Map.Entry<FactionAPI, Map<StarSystemAPI, Integer>> fM : SystemEconomyService.getUnmetSupply().getOrDefault(commodityId, Collections.emptyMap()).entrySet()){
+                            if(fM.getKey() == faction) continue;
+                            if(faction.isHostileTo(fM.getKey())){
+                                systemHostileSupply += fM.getValue().getOrDefault(market.getStarSystem(), 0);
+                                for(Map.Entry<StarSystemAPI, Integer> si : fM.getValue().entrySet()){
+                                    hostileSupply += si.getValue();
+                                }
+                            } else {
+                                systemNonHostileSupply += fM.getValue().getOrDefault(market.getStarSystem(), 0);
+                                for(Map.Entry<StarSystemAPI, Integer> si : fM.getValue().entrySet()){
+                                    nonHostileSupply += si.getValue();
                                 }
                             }
                         }
-                    }
-
-                    sortTradePairs(importTradePair, market.getFaction(), market.getStarSystem(), true);
-                    sortTradePairs(exportTradePair, market.getFaction(), market.getStarSystem(), false);
-
-                    if(!importTradePair.isEmpty()){
-                        this.addPara("进口量：{%s}", paragraphGap, highlightColor, "" + importItemNum);
-                        this.beginGridFlipped(450.0F, 1, 40.0F, paragraphGap);
-                        int gridLineIndex = 0;
-                        for (TradePair tradePair : importTradePair) {
-                            this.addToGrid(0, gridLineIndex++,
-                                    "从 " + ((tradePair.getFromSystem() == market.getStarSystem()) ? "本星系" : tradePair.getFromSystem().getName()) + " "
-                                            + tradePair.getFromPlanet().getName() + "("
-                                            + ((tradePair.getFromFaction() == market.getFaction()) ? "本势力" : tradePair.getFromFaction().getDisplayName())
-                                            + ") 购买", formatDemandNumber(tradePair.getItemNum()), O0OO.ÕO0000);
+                        systemFactionDemand = SystemEconomyService.getUnmetDemand().getOrDefault(commodityId, Collections.emptyMap()).getOrDefault(faction, Collections.emptyMap()).getOrDefault(market.getStarSystem(), 0);
+                        for(Map.Entry<StarSystemAPI, Integer> si : SystemEconomyService.getUnmetDemand().getOrDefault(commodityId, Collections.emptyMap()).getOrDefault(faction, Collections.emptyMap()).entrySet()){
+                            factionDemand += si.getValue();
                         }
-                        this.addGrid(smallGap);
-
-                        this.addPara("无出口订单。", paragraphGap);
-                    } else if (!exportTradePair.isEmpty()){
-                        this.addPara("无进口订单。", paragraphGap);
-
-                        this.addPara("出口量：{%s}", paragraphGap, highlightColor, "" + exportItemNum);
-                        this.beginGridFlipped(450.0F, 1, 40.0F, paragraphGap);
-                        int gridLineIndex = 0;
-                        for (TradePair tradePair : exportTradePair) {
-                            this.addToGrid(0, gridLineIndex++,
-                                    "向 " + ((tradePair.getToSystem() == market.getStarSystem()) ? "本星系" : tradePair.getToSystem().getName()) + " "
-                                            + tradePair.getToPlanet().getName() + "("
-                                            + ((tradePair.getToFaction() == market.getFaction()) ? "本势力" : tradePair.getToFaction().getDisplayName())
-                                            + ") 出售", formatDemandNumber(tradePair.getItemNum()), O0OO.ÕO0000);
+                        for(Map.Entry<FactionAPI, Map<StarSystemAPI, Integer>> fM : SystemEconomyService.getUnmetDemand().getOrDefault(commodityId, Collections.emptyMap()).entrySet()){
+                            if(fM.getKey() == faction) continue;
+                            if(faction.isHostileTo(fM.getKey())){
+                                systemHostileDemand += fM.getValue().getOrDefault(market.getStarSystem(), 0);
+                                for(Map.Entry<StarSystemAPI, Integer> si : fM.getValue().entrySet()){
+                                    hostileDemand += si.getValue();
+                                }
+                            } else {
+                                systemNonHostileDemand += fM.getValue().getOrDefault(market.getStarSystem(), 0);
+                                for(Map.Entry<StarSystemAPI, Integer> si : fM.getValue().entrySet()){
+                                    nonHostileDemand += si.getValue();
+                                }
+                            }
                         }
-                        this.addGrid(smallGap);
+
+                        this.addPara("在星系内，本势力的潜在需求为 {%s}， 非敌对势力的潜在需求为 {%s}， 敌对势力的潜在需求为 {%s}。", paragraphGap,  highlightColor, ""+systemFactionDemand, ""+systemNonHostileDemand, ""+systemHostileDemand);
+                        this.addPara("在星域内，本势力的潜在需求为 {%s}， 非敌对势力的潜在需求为 {%s}， 敌对势力的潜在需求为 {%s}。", paragraphGap,  highlightColor, ""+factionDemand, ""+nonHostileDemand, ""+hostileDemand);
+                        this.addPara("在星系内，本势力的过剩产能为 {%s}， 非敌对势力的过剩产能为 {%s}， 敌对势力的过剩产能为 {%s}。", paragraphGap,  highlightColor, ""+systemFactionSupply, ""+systemNonHostileSupply, ""+systemHostileSupply);
+                        this.addPara("在星域内，本势力的过剩产能为 {%s}， 非敌对势力的过剩产能为 {%s}， 敌对势力的过剩产能为 {%s}。", paragraphGap,  highlightColor, ""+factionSupply, ""+nonHostileSupply, ""+hostileSupply);
                     } else {
-                        this.addPara("无进出口订单。", paragraphGap);
+                        this.addSectionHeading("生产 与 需求", baseColor, darkColor, Alignment.MID, paragraphGap);
+                        this.addPara("{%s}", paragraphGap,  Color.red, "无信号" );
+                        this.addSectionHeading("进口 与 出口", baseColor, darkColor, Alignment.MID, paragraphGap);
+                        this.addPara("{%s}", paragraphGap,  Color.red, "无信号" );
                     }
                 }
             }
