@@ -1,18 +1,15 @@
 package eco.mixin;
 
 import com.fs.graphics.util.B;
-import com.fs.starfarer.api.campaign.econ.CommodityOnMarketAPI;
 import com.fs.starfarer.api.impl.campaign.econ.CommodityIconCounts;
 import com.fs.starfarer.api.ui.Alignment;
 import com.fs.starfarer.campaign.econ.CommodityOnMarket;
 import com.fs.starfarer.campaign.econ.reach.CommodityMarketData;
 import com.fs.starfarer.campaign.econ.reach.MarketShareData;
-import com.fs.starfarer.campaign.ui.marketinfo.CommodityTooltipFactory;
 import com.fs.starfarer.campaign.ui.marketinfo.f;
 import com.fs.starfarer.campaign.ui.marketinfo.i;
 import com.fs.starfarer.campaign.ui.marketinfo.ooO0;
 import com.fs.starfarer.renderers.O;
-import com.fs.starfarer.settings.StarfarerSettings;
 import com.fs.starfarer.ui.*;
 import com.fs.graphics.A.ooOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO;
 
@@ -37,85 +34,79 @@ public class ItemLine extends m.Oo{
             throw new RuntimeException(e);
         }
     }
-    private CommodityOnMarket øøÓO00;
-    private ooO0 field_0001;
-    private i O0ÔO00;
+    private final CommodityOnMarket commodity;
+    private ooO0 iconGroup;
+    private i exportIcon;
 
-    public ItemLine(CommodityOnMarket var1) {
-        this.øøÓO00 = var1;
+    public ItemLine(CommodityOnMarket commodity) {
+        this.commodity = commodity;
     }
 
-    public void sizeChanged(float var1, float var2) {
+    public void sizeChanged(float width, float height) {
         this.clearChildren();
-        super.sizeChanged(var1, var2);
-        this.field_0001 = new ooO0((U)null);
-        this.field_0001.setWideSpacing(true);
-        this.field_0001.setMediumSpacing(true);
+        super.sizeChanged(width, height);
+        
+        this.iconGroup = new ooO0(null);
+        this.iconGroup.setWideSpacing(true);
+        this.iconGroup.setMediumSpacing(true);
+
         f.o var3 = f.o.values()[0];
-        int var4 = (int)this.øøÓO00.getAvailableStat().getModifiedValue();
-        int var5 = this.øøÓO00.getMaxDemand();
-        Math.min(var4, this.øøÓO00.getMaxSupply());
-        CommodityMarketData var7 = this.øøÓO00.getCommodityMarketData();
-        MarketShareData var8 = var7.getMarketShareData(this.øøÓO00.getMarket());
-        CommodityIconCounts var9 = new CommodityIconCounts(this.øøÓO00);
-        int var10 = var9.demandMetWithLocal;
-        int var11 = var9.nonDemandExport;
-        int var12 = var9.imports;
-        int var13 = var9.extra;
-        int var14 = var9.deficit;
+        int var4 = (int)this.commodity.getAvailableStat().getModifiedValue();//库存
+        int var5 = this.commodity.getMaxDemand();//需求
+        Math.min(var4, this.commodity.getMaxSupply());
+        CommodityMarketData var7 = this.commodity.getCommodityMarketData();//全局数据
+        MarketShareData var8 = var7.getMarketShareData(this.commodity.getMarket());//本地数据
+
+        CommodityIconCounts var9 = new CommodityIconCounts(this.commodity);
+        int var10 = var9.demandMetWithLocal;//满足本地
+        int var11 = var9.nonDemandExport;//纯出口
+        int var12 = var9.imports;//进口
+        int var13 = var9.extra;//过剩
+        int var14 = var9.deficit;//短缺
+        //计算图标数量
+
         byte var15 = 20;
-        if (var10 > var15) {
-            var10 = var15;
-        }
-
-        if (var11 > var15) {
-            var11 = var15;
-        }
-
-        if (var12 > var15) {
-            var12 = var15;
-        }
-
-        if (var13 > var15) {
-            var13 = var15;
-        }
-
-        if (var14 > var15) {
-            var14 = var15;
-        }
+        if (var10 > var15) { var10 = var15; }
+        if (var11 > var15) { var11 = var15; }
+        if (var12 > var15) { var12 = var15; }
+        if (var13 > var15) { var13 = var15; }
+        if (var14 > var15) { var14 = var15; }
+        //截断图标<20
 
         if (var10 > 0) {
-            this.field_0001.addGroup(this.øøÓO00, var10, 1.0F, f.o.values()[0], (Object)null);
+            this.iconGroup.addGroup(this.commodity, var10, 1.0F, f.o.values()[0], (Object)null);
         }
-
         if (var11 > 0) {
-            this.field_0001.addGroup(this.øøÓO00, var11, 1.0F, f.o.values()[0], (Object)null);
+            this.iconGroup.addGroup(this.commodity, var11, 1.0F, f.o.values()[0], (Object)null);
         }
-
         if (var12 > 0) {
-            this.field_0001.addGroup(this.øøÓO00, var12, 1.0F, f.o.Ò00000, (Object)null);
+            this.iconGroup.addGroup(this.commodity, var12, 1.0F, f.o.Ò00000, (Object)null);
         }
-
         if (var13 > 0) {
-            this.field_0001.addGroup(this.øøÓO00, var13, 1.0F, f.o.values()[2], (Object)null);
+            this.iconGroup.addGroup(this.commodity, var13, 1.0F, f.o.values()[2], (Object)null);
         }
-
         if (var14 > 0) {
-            this.field_0001.addGroup(this.øøÓO00, var14, 1.0F, f.o.ô00000, (Object)null);
+            this.iconGroup.addGroup(this.commodity, var14, 1.0F, f.o.ô00000, (Object)null);
         }
+        //添加图标组
 
         float var16 = 3.0F;
         float var17 = 10.0F;
         float var18 = this.getHeight();
-        this.field_0001.autoSizeWithAdjust(this.getHeight(), this.getWidth() - var18 * 2.0F - var16 * 2.0F - var18 - var16 - var17, this.getHeight(), this.getHeight());
+        this.iconGroup.autoSizeWithAdjust(this.getHeight(), this.getWidth() - var18 * 2.0F - var16 * 2.0F - var18 - var16 - var17, this.getHeight(), this.getHeight());
+        //自适应大小
+
         float var19 = 32.0F;
-        Color var20 = this.øøÓO00.getMarket().getFaction().getBaseUIColor();
-        d var21 = d.createSmallInsigniaLabel(this.øøÓO00.getAvailable() + "×", Alignment.MID);
+        Color var20 = this.commodity.getMarket().getFaction().getBaseUIColor();
+        d var21 = d.createSmallInsigniaLabel(this.commodity.getAvailable() + "×", Alignment.MID);
+        //文本标签
+
         boolean var22 = var18 < 24.0F;
         if (var22) {
-            var21 = new d(this.øøÓO00.getAvailable() + "×", GameSettings.getFont(), var20, true, Alignment.MID);
+            var21 = new d(this.commodity.getAvailable() + "×", GameSettings.getFont(), var20, true, Alignment.MID);
             var19 = 24.0F;
         }
+        //小标签
 
         var21.setColor(var20);
         setSet$int(var21.getRenderer(),true);
@@ -125,38 +116,41 @@ public class ItemLine extends m.Oo{
         if (var22) {
             var21.getPosition().setYAlignOffset(1.0F);
         }
+        this.add(this.iconGroup).inLMid(var18 + var16 + var23);
+        //添加标签
 
-        this.add(this.field_0001).inLMid(var18 + var16 + var23);
         var23 = 0.0F;
         float var24 = 3.0F;
+
         boolean var25 = var8.isSourceIsIllegal();
         i var26 = null;
         switch (var8.getSource()) {
             case GLOBAL:
-                var26 = new i(GameSettings.getSpritePath("commodity_markers", "imports"), this.øøÓO00.getMarket().getFaction().getBaseUIColor(), var25);
+                var26 = new i(GameSettings.getSpritePath("commodity_markers", "imports"), this.commodity.getMarket().getFaction().getBaseUIColor(), var25);
                 break;
             case IN_FACTION:
-                var26 = new i(this.øøÓO00.getMarket().getFaction().getCrest(), (Color)null, var25);
+                var26 = new i(this.commodity.getMarket().getFaction().getCrest(), (Color)null, var25);
                 break;
             case LOCAL:
             case NONE:
-                var26 = new i(GameSettings.getSpritePath("commodity_markers", "production"), this.øøÓO00.getMarket().getFaction().getBaseUIColor(), var25);
+                var26 = new i(GameSettings.getSpritePath("commodity_markers", "production"), this.commodity.getMarket().getFaction().getBaseUIColor(), var25);
         }
+        //来源标记
 
         if (var26 != null) {
             this.add(var26).setSize(var18, var18).inBL(var23, 0.0F);
         }
 
-        if (var7.getExportIncome(this.øøÓO00) > 0) {
-            this.O0ÔO00 = new i(GameSettings.getSpritePath("commodity_markers", "exports"), this.øøÓO00.getMarket().getFaction().getBaseUIColor(), false);
-            this.add(this.O0ÔO00).setSize(var18, var18).inBR(var24, 0.0F);
+        if (var7.getExportIncome(this.commodity) > 0) {
+            this.exportIcon = new i(GameSettings.getSpritePath("commodity_markers", "exports"), this.commodity.getMarket().getFaction().getBaseUIColor(), false);
+            this.add(this.exportIcon).setSize(var18, var18).inBR(var24, 0.0F);
         }
 
         this.bringToTop(var21);
     }
 
     public CommodityOnMarket getCommodity() {
-        return this.øøÓO00;
+        return this.commodity;
     }
 
     protected void renderImpl(float var1) {
@@ -165,8 +159,8 @@ public class ItemLine extends m.Oo{
             var2 = B.Ô00000(Color.white, this.glowAmount * 0.33F);
         }
 
-        var2 = this.øøÓO00.getMarket().getFaction().getDarkUIColor();
-        Color var3 = this.øøÓO00.getMarket().getFaction().getBaseUIColor();
+        var2 = this.commodity.getMarket().getFaction().getDarkUIColor();
+        Color var3 = this.commodity.getMarket().getFaction().getBaseUIColor();
         if (this.isDisabled) {
             ;
         }

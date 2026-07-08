@@ -17,8 +17,7 @@ import java.util.*;
 public class SystemEconomyService implements EconomyTickListener {
     /**{@code <systemId, SystemMarket> }*/
     private static Map<StarSystemAPI, SystemMarket> systemMarkets = new HashMap<>();
-    private static Map<String, Map<FactionAPI, Map<StarSystemAPI, Integer>>> unmetSupply = new HashMap<>();
-    private static Map<String, Map<FactionAPI, Map<StarSystemAPI, Integer>>> unmetDemand = new HashMap<>();
+    private static Map<MarketAPI,SystemEconomyData> allData = new HashMap<>();
     /** 从allMarkets到systemMarkets*/
     private static Map<StarSystemAPI, SystemMarket> getMarkets(List<MarketAPI> allMarkets) {
         Map<StarSystemAPI, SystemMarket> result = new HashMap<>();
@@ -109,16 +108,10 @@ public class SystemEconomyService implements EconomyTickListener {
         systemMarkets.get(supplyTrade.getSystem()).getPlanetMarkets().get(supplyTrade.getPlanet()).addSupplyTrade(tradePair);
         systemMarkets.get(demandTrade.getSystem()).getPlanetMarkets().get(demandTrade.getPlanet()).addDemandTrade(tradePair);
     }
-    /** 收集潜在供需 */
-    private static void captureUnmet(){
-        unmetSupply.clear();
-        unmetDemand.clear();
-        for (Map.Entry<StarSystemAPI, SystemMarket> systemMarketPair : systemMarkets.entrySet()) {
-            for(Trade unmet : systemMarketPair.getValue().getSupplyList()){
-                unmetSupply.computeIfAbsent(unmet.getItemId(),i -> new HashMap<>()).computeIfAbsent(unmet.getFaction(),j -> new HashMap<>()).merge(unmet.getSystem(), unmet.getItemNum(), Integer::sum);
-            }
-            for(Trade unmet : systemMarketPair.getValue().getDemandList()){
-                unmetDemand.computeIfAbsent(unmet.getItemId(),i -> new HashMap<>()).computeIfAbsent(unmet.getFaction(),j -> new HashMap<>()).merge(unmet.getSystem(), unmet.getItemNum(), Integer::sum);
+    private static void collateData(){
+        for (Map.Entry<StarSystemAPI, SystemMarket> smP : systemMarkets.entrySet()){
+            for (Map.Entry<PlanetAPI, PlanetMarket> pmP : smP.getValue().getPlanetMarkets().entrySet()){
+                allData.put(pmP.getValue().getMarket(), new SystemEconomyData(getPlanetMarket(pmP.getValue().getMarket())));
             }
         }
     }
@@ -132,7 +125,7 @@ public class SystemEconomyService implements EconomyTickListener {
             systemMarketPair.getValue().matchTrade();
         }
         matchInterSystemTrade();
-        captureUnmet();
+        collateData();
     }
     public static PlanetMarket getPlanetMarket(MarketAPI market) {
         if (market == null) return null;
@@ -141,10 +134,10 @@ public class SystemEconomyService implements EconomyTickListener {
         if (systemMarkets.get(market.getStarSystem()).getPlanetMarkets() == null) return null;
         return systemMarkets.get(market.getStarSystem()).getPlanetMarkets().get(market.getPlanetEntity());
     }
-    public static Map<String, Map<FactionAPI, Map<StarSystemAPI, Integer>>> getUnmetSupply() {
-        return unmetSupply;
+    public static SystemEconomyData getSystemEconomyData(MarketAPI market){
+        return allData.get(market);
     }
-    public static Map<String, Map<FactionAPI, Map<StarSystemAPI, Integer>>> getUnmetDemand() {
-        return unmetDemand;
+    public static Map<StarSystemAPI, SystemMarket> getSystemMarkets() {
+        return systemMarkets;
     }
 }

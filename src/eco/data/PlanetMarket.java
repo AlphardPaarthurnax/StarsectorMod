@@ -89,4 +89,10 @@ public class PlanetMarket{
     public List<TradePair> getDemandTrade() { return demandTrade; }
     public void addSupplyTrade(TradePair supplyTradePair) { this.supplyTrade.add(supplyTradePair); }
     public void addDemandTrade(TradePair demandTradePair) { this.demandTrade.add(demandTradePair); }
+    public Set<String> getCommodityIds() {
+        Set<String> ids = new HashSet<>();
+        ids.addAll(supplyRaw.keySet());
+        ids.addAll(demandRaw.keySet());
+        return ids;
+    }
 }
