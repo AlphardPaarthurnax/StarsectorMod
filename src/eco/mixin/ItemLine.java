@@ -12,10 +12,14 @@ import com.fs.starfarer.campaign.ui.marketinfo.ooO0;
 import com.fs.starfarer.renderers.O;
 import com.fs.starfarer.ui.*;
 import com.fs.graphics.A.ooOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO;
+import eco.SystemEconomyData;
+import eco.SystemEconomyService;
 
 import java.awt.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+
+import static eco.SystemEconomyService.formatDemandNumber;
 
 public class ItemLine extends m.Oo{
 
@@ -50,103 +54,112 @@ public class ItemLine extends m.Oo{
         this.iconGroup.setWideSpacing(true);
         this.iconGroup.setMediumSpacing(true);
 
-        f.o var3 = f.o.values()[0];
         int var4 = (int)this.commodity.getAvailableStat().getModifiedValue();//库存
-        int var5 = this.commodity.getMaxDemand();//需求
         Math.min(var4, this.commodity.getMaxSupply());
         CommodityMarketData var7 = this.commodity.getCommodityMarketData();//全局数据
         MarketShareData var8 = var7.getMarketShareData(this.commodity.getMarket());//本地数据
 
         CommodityIconCounts var9 = new CommodityIconCounts(this.commodity);
-        int var10 = var9.demandMetWithLocal;//满足本地
-        int var11 = var9.nonDemandExport;//纯出口
-        int var12 = var9.imports;//进口
-        int var13 = var9.extra;//过剩
-        int var14 = var9.deficit;//短缺
-        //计算图标数量
 
-        byte var15 = 20;
-        if (var10 > var15) { var10 = var15; }
-        if (var11 > var15) { var11 = var15; }
-        if (var12 > var15) { var12 = var15; }
-        if (var13 > var15) { var13 = var15; }
-        if (var14 > var15) { var14 = var15; }
-        //截断图标<20
+        SystemEconomyData systemEconomyData = SystemEconomyService.getSystemEconomyData(commodity.getMarket());
+        SystemEconomyData.CommodityEconomyData commodityEconomyData = (systemEconomyData != null) ? systemEconomyData.getCommodityEconomyData(commodity.getId()) : null;
 
-        if (var10 > 0) {
-            this.iconGroup.addGroup(this.commodity, var10, 1.0F, f.o.values()[0], (Object)null);
+        if(commodityEconomyData != null){
+            int factionImports = commodityEconomyData.getFactionImports();//本势力进口
+            int otherImports = commodityEconomyData.getOtherImports();//其他势力进口
+            int factionExports = commodityEconomyData.getFactionExports();//本势力出口
+            int otherExports = commodityEconomyData.getOtherExports();//其他势力出口
+            int extra = commodityEconomyData.getExtra();//过剩
+            int deficit = commodityEconomyData.getDeficit();//短缺
+            //计算图标数量
+
+            byte limit = 20;
+            if (factionImports > limit) { factionImports = limit; }
+            if (otherImports > limit) { otherImports = limit; }
+            if (factionExports > limit) { factionExports = limit; }
+            if (otherExports > limit) { otherExports = limit; }
+            if (extra > limit) { extra = limit; }
+            if (deficit > limit) { deficit = limit; }
+            //截断图标<20
+
+            if (factionImports > 0) {
+                this.iconGroup.addGroup(this.commodity, factionImports, 1.0F, f.o.values()[0], null);
+            }
+            if (factionExports > 0) {
+                this.iconGroup.addGroup(this.commodity, factionExports, 1.0F, f.o.values()[0], null);
+            }
+            if (otherImports > 0) {
+                this.iconGroup.addGroup(this.commodity, otherImports, 1.0F, f.o.values()[0], null);
+            }
+            if (otherExports > 0) {
+                this.iconGroup.addGroup(this.commodity, otherImports, 1.0F, f.o.values()[0], null);
+            }
+            if (extra > 0) {
+                this.iconGroup.addGroup(this.commodity, extra, 1.0F, f.o.values()[2], null);
+            }
+            if (deficit > 0) {
+                this.iconGroup.addGroup(this.commodity, deficit, 1.0F, f.o.ô00000, null);
+            }
+            //添加图标组
+
+            float var16 = 3.0F;
+            float var17 = 10.0F;
+            float var18 = this.getHeight();
+            this.iconGroup.autoSizeWithAdjust(this.getHeight(), this.getWidth() - var18 * 2.0F - var16 * 2.0F - var18 - var16 - var17, this.getHeight(), this.getHeight());
+            //自适应大小
+
+            float var19 = 32.0F;
+            Color var20 = this.commodity.getMarket().getFaction().getBaseUIColor();
+            d var21 = d.createSmallInsigniaLabel("× " + formatDemandNumber(Math.abs(commodityEconomyData.getNetSupply())), Alignment.MID);
+            //文本标签
+
+            boolean var22 = var18 < 24.0F;
+            if (var22) {
+                var21 = new d("× " + formatDemandNumber(Math.abs(commodityEconomyData.getNetSupply())), GameSettings.getFont(), var20, true, Alignment.MID);
+                var19 = 24.0F;
+            }
+            //小标签
+
+            var21.setColor(var20);
+            setSet$int(var21.getRenderer(),true);
+            var21.setSize(var19, var21.getLineHeight());
+            float var23 = var21.getWidth() + var16;
+            this.add(var21).inLMid(var18 + var16);
+            if (var22) {
+                var21.getPosition().setYAlignOffset(1.0F);
+            }
+            this.add(this.iconGroup).inLMid(var18 + var16 + var23);
+            //添加标签
+
+            var23 = 0.0F;
+            float var24 = 3.0F;
+
+            boolean var25 = var8.isSourceIsIllegal();
+            i var26 = null;
+            switch (var8.getSource()) {
+                case GLOBAL:
+                    var26 = new i(GameSettings.getSpritePath("commodity_markers", "imports"), this.commodity.getMarket().getFaction().getBaseUIColor(), var25);
+                    break;
+                case IN_FACTION:
+                    var26 = new i(this.commodity.getMarket().getFaction().getCrest(), (Color)null, var25);
+                    break;
+                case LOCAL:
+                case NONE:
+                    var26 = new i(GameSettings.getSpritePath("commodity_markers", "production"), this.commodity.getMarket().getFaction().getBaseUIColor(), var25);
+            }
+            //来源标记
+
+            if (var26 != null) {
+                this.add(var26).setSize(var18, var18).inBL(var23, 0.0F);
+            }
+
+            if (var7.getExportIncome(this.commodity) > 0) {
+                this.exportIcon = new i(GameSettings.getSpritePath("commodity_markers", "exports"), this.commodity.getMarket().getFaction().getBaseUIColor(), false);
+                this.add(this.exportIcon).setSize(var18, var18).inBR(var24, 0.0F);
+            }
+
+            this.bringToTop(var21);
         }
-        if (var11 > 0) {
-            this.iconGroup.addGroup(this.commodity, var11, 1.0F, f.o.values()[0], (Object)null);
-        }
-        if (var12 > 0) {
-            this.iconGroup.addGroup(this.commodity, var12, 1.0F, f.o.Ò00000, (Object)null);
-        }
-        if (var13 > 0) {
-            this.iconGroup.addGroup(this.commodity, var13, 1.0F, f.o.values()[2], (Object)null);
-        }
-        if (var14 > 0) {
-            this.iconGroup.addGroup(this.commodity, var14, 1.0F, f.o.ô00000, (Object)null);
-        }
-        //添加图标组
-
-        float var16 = 3.0F;
-        float var17 = 10.0F;
-        float var18 = this.getHeight();
-        this.iconGroup.autoSizeWithAdjust(this.getHeight(), this.getWidth() - var18 * 2.0F - var16 * 2.0F - var18 - var16 - var17, this.getHeight(), this.getHeight());
-        //自适应大小
-
-        float var19 = 32.0F;
-        Color var20 = this.commodity.getMarket().getFaction().getBaseUIColor();
-        d var21 = d.createSmallInsigniaLabel(this.commodity.getAvailable() + "×", Alignment.MID);
-        //文本标签
-
-        boolean var22 = var18 < 24.0F;
-        if (var22) {
-            var21 = new d(this.commodity.getAvailable() + "×", GameSettings.getFont(), var20, true, Alignment.MID);
-            var19 = 24.0F;
-        }
-        //小标签
-
-        var21.setColor(var20);
-        setSet$int(var21.getRenderer(),true);
-        var21.setSize(var19, var21.getLineHeight());
-        float var23 = var21.getWidth() + var16;
-        this.add(var21).inLMid(var18 + var16);
-        if (var22) {
-            var21.getPosition().setYAlignOffset(1.0F);
-        }
-        this.add(this.iconGroup).inLMid(var18 + var16 + var23);
-        //添加标签
-
-        var23 = 0.0F;
-        float var24 = 3.0F;
-
-        boolean var25 = var8.isSourceIsIllegal();
-        i var26 = null;
-        switch (var8.getSource()) {
-            case GLOBAL:
-                var26 = new i(GameSettings.getSpritePath("commodity_markers", "imports"), this.commodity.getMarket().getFaction().getBaseUIColor(), var25);
-                break;
-            case IN_FACTION:
-                var26 = new i(this.commodity.getMarket().getFaction().getCrest(), (Color)null, var25);
-                break;
-            case LOCAL:
-            case NONE:
-                var26 = new i(GameSettings.getSpritePath("commodity_markers", "production"), this.commodity.getMarket().getFaction().getBaseUIColor(), var25);
-        }
-        //来源标记
-
-        if (var26 != null) {
-            this.add(var26).setSize(var18, var18).inBL(var23, 0.0F);
-        }
-
-        if (var7.getExportIncome(this.commodity) > 0) {
-            this.exportIcon = new i(GameSettings.getSpritePath("commodity_markers", "exports"), this.commodity.getMarket().getFaction().getBaseUIColor(), false);
-            this.add(this.exportIcon).setSize(var18, var18).inBR(var24, 0.0F);
-        }
-
-        this.bringToTop(var21);
     }
 
     public CommodityOnMarket getCommodity() {

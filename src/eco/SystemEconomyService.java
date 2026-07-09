@@ -18,6 +18,8 @@ public class SystemEconomyService implements EconomyTickListener {
     /**{@code <systemId, SystemMarket> }*/
     private static Map<StarSystemAPI, SystemMarket> systemMarkets = new HashMap<>();
     private static Map<MarketAPI,SystemEconomyData> allData = new HashMap<>();
+    private static Map<String,Integer> globalData = new HashMap<>();
+    private static Map<String, Map<FactionAPI, Integer>> factionGlobalData = new HashMap<>();
     /** 从allMarkets到systemMarkets*/
     private static Map<StarSystemAPI, SystemMarket> getMarkets(List<MarketAPI> allMarkets) {
         Map<StarSystemAPI, SystemMarket> result = new HashMap<>();
@@ -109,9 +111,16 @@ public class SystemEconomyService implements EconomyTickListener {
         systemMarkets.get(demandTrade.getSystem()).getPlanetMarkets().get(demandTrade.getPlanet()).addDemandTrade(tradePair);
     }
     private static void collateData(){
+        allData.clear();
+        globalData.clear();
+        factionGlobalData.clear();
         for (Map.Entry<StarSystemAPI, SystemMarket> smP : systemMarkets.entrySet()){
             for (Map.Entry<PlanetAPI, PlanetMarket> pmP : smP.getValue().getPlanetMarkets().entrySet()){
                 allData.put(pmP.getValue().getMarket(), new SystemEconomyData(getPlanetMarket(pmP.getValue().getMarket())));
+                for(TradePair trade : pmP.getValue().getSupplyTrade()){
+                    globalData.merge(trade.getItemId(),trade.getItemNum(),Integer::sum);
+                    factionGlobalData.computeIfAbsent(trade.getItemId(), k -> new HashMap<>()).merge(trade.getFromFaction(), trade.getItemNum(), Integer::sum);
+                }
             }
         }
     }
@@ -139,5 +148,17 @@ public class SystemEconomyService implements EconomyTickListener {
     }
     public static Map<StarSystemAPI, SystemMarket> getSystemMarkets() {
         return systemMarkets;
+    }
+    public static int getGlobalData(String commodityId) {
+        return globalData.getOrDefault(commodityId,0);
+    }
+    public static int getFactionGlobalData(String commodityId,FactionAPI faction) {
+        return factionGlobalData.getOrDefault(commodityId, Collections.emptyMap()).getOrDefault(faction,0);
+    }
+    public static String formatDemandNumber(int n) {
+        if (n >= 100000000) return String.format("%.1f B", n / 1000000000f);
+        if (n >= 100000) return String.format("%.1f M", n / 1000000f);
+        if (n > 100)     return String.format("%.1f K", n / 1000f);
+        return String.valueOf(n);
     }
 }

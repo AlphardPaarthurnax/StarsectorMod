@@ -38,7 +38,12 @@ public class SystemEconomyData {
         int imports, exports;
         List<Pair<String,Integer>> importsList = new ArrayList<>();
         List<Pair<String,Integer>> exportsList = new ArrayList<>();
-        int[][][] unmetData = new int[FlowType.values().length][Scope.values().length][Relation.values().length];
+        int systemFactionSupply, systemNonHostileSupply, systemHostileSupply;
+        int factionSupply, nonHostileSupply, hostileSupply;
+        int systemFactionDemand, systemNonHostileDemand, systemHostileDemand;
+        int factionDemand, nonHostileDemand, hostileDemand;
+
+        int factionImports, otherImports, factionExports, otherExports, extra, deficit;
         public CommodityEconomyData(PlanetMarket market, String commodityId){
             this.market = market;
             this.commodityId = commodityId;
@@ -49,11 +54,18 @@ public class SystemEconomyData {
             demandList.clear();
             importsList.clear();
             exportsList.clear();
-            for (int[][] unmetDatum : unmetData) {
-                for (int[] ints : unmetDatum) {
-                    Arrays.fill(ints, 0);
-                }
-            }
+            systemFactionSupply = 0;
+            systemNonHostileSupply = 0;
+            systemHostileSupply = 0;
+            factionSupply = 0;
+            nonHostileSupply = 0;
+            hostileSupply = 0;
+            systemFactionDemand = 0;
+            systemNonHostileDemand = 0;
+            systemHostileDemand = 0;
+            factionDemand = 0;
+            nonHostileDemand = 0;
+            hostileDemand = 0;
             this.supply = market.getSupplyRaw(commodityId);
             this.demand = market.getDemandRaw(commodityId);
             this.netSupply = supply - demand;
@@ -70,12 +82,22 @@ public class SystemEconomyData {
                 if (Objects.equals(tradePair.getItemId(), commodityId)) {
                     importTradePair.add(tradePair);
                     imports += tradePair.getItemNum();
+                    if (Objects.equals(tradePair.getFromFaction(), market.getFaction())) {
+                        factionImports += tradePair.getItemNum();
+                    } else {
+                        otherImports += tradePair.getItemNum();
+                    }
                 }
             }
             for (TradePair tradePair : market.getSupplyTrade()) {
                 if (Objects.equals(tradePair.getItemId(), commodityId)) {
                     exportTradePair.add(tradePair);
                     exports += tradePair.getItemNum();
+                    if (Objects.equals(tradePair.getToFaction(), market.getFaction())) {
+                        factionExports += tradePair.getItemNum();
+                    } else {
+                        otherExports += tradePair.getItemNum();
+                    }
                 }
             }
             sortTradePairs(importTradePair, market.getFaction(), market.getSystem(), true);
@@ -100,48 +122,42 @@ public class SystemEconomyData {
             for (Map.Entry<StarSystemAPI, SystemMarket> entry : SystemEconomyService.getSystemMarkets().entrySet()) {
                 StarSystemAPI system = entry.getKey();
                 for (Trade unmet : entry.getValue().getSupplyList()) {
-                    if(Objects.equals(unmet.getItemId(), commodityId)) {
-                        Scope scope;
-                        Relation relation;
-                        if(unmet.getSystem() == system){
-                            scope = Scope.SYSTEM;
-                        } else {
-                            scope = Scope.GLOBAL;
-                        }
-                        if(unmet.getFaction() == market.getFaction()){
-                            relation = Relation.FACTION;
-                        } else if(!market.getFaction().isHostileTo(unmet.getFaction())){
-                            relation = Relation.NON_HOSTILE;
-                        } else {
-                            relation = Relation.HOSTILE;
-                        }
-                        unmetData[FlowType.SUPPLY.ordinal()][scope.ordinal()][relation.ordinal()] += unmet.getItemNum();
+                    if (!Objects.equals(unmet.getItemId(), commodityId)) continue;
+                    if (unmet.getMarket() == market.getMarket()) {
+                        extra += unmet.getItemNum();
+                    }
+                    boolean sameSys = Objects.equals(system, market.getSystem());
+                    boolean isHostile = market.getFaction().isHostileTo(unmet.getFaction());
+                    if (Objects.equals(unmet.getFaction(), market.getFaction())) {
+                        if (sameSys) systemFactionSupply += unmet.getItemNum();
+                        factionSupply += unmet.getItemNum();
+                    } else if (isHostile) {
+                        if (sameSys) systemHostileSupply += unmet.getItemNum();
+                        hostileSupply += unmet.getItemNum();
+                    } else {
+                        if (sameSys) systemNonHostileSupply += unmet.getItemNum();
+                        nonHostileSupply += unmet.getItemNum();
                     }
                 }
                 for (Trade unmet : entry.getValue().getDemandList()) {
-                    if(Objects.equals(unmet.getItemId(), commodityId)) {
-                        Scope scope;
-                        Relation relation;
-                        if(unmet.getSystem() == system){
-                            scope = Scope.SYSTEM;
-                        } else {
-                            scope = Scope.GLOBAL;
-                        }
-                        if(unmet.getFaction() == market.getFaction()){
-                            relation = Relation.FACTION;
-                        } else if(!market.getFaction().isHostileTo(unmet.getFaction())){
-                            relation = Relation.NON_HOSTILE;
-                        } else {
-                            relation = Relation.HOSTILE;
-                        }
-                        unmetData[FlowType.DEMAND.ordinal()][scope.ordinal()][relation.ordinal()] += unmet.getItemNum();
+                    if (!Objects.equals(unmet.getItemId(), commodityId)) continue;
+                    if (unmet.getMarket() == market.getMarket()) {
+                        deficit += unmet.getItemNum();
+                    }
+                    boolean sameSys = Objects.equals(system, market.getSystem());
+                    boolean isHostile = market.getFaction().isHostileTo(unmet.getFaction());
+                    if (Objects.equals(unmet.getFaction(), market.getFaction())) {
+                        if (sameSys) systemFactionDemand += unmet.getItemNum();
+                        factionDemand += unmet.getItemNum();
+                    } else if (isHostile) {
+                        if (sameSys) systemHostileDemand += unmet.getItemNum();
+                        hostileDemand += unmet.getItemNum();
+                    } else {
+                        if (sameSys) systemNonHostileDemand += unmet.getItemNum();
+                        nonHostileDemand += unmet.getItemNum();
                     }
                 }
             }
-        }
-
-        public int getUnmetData(FlowType flow, Scope scope, Relation relation) {
-            return unmetData[flow.ordinal()][scope.ordinal()][relation.ordinal()];
         }
         public int getNetSupply() {
             return netSupply;
@@ -169,6 +185,60 @@ public class SystemEconomyData {
         }
         public List<Pair<String, Integer>> getExportsList() {
             return exportsList;
+        }
+        public int getSystemFactionSupply() {
+            return systemFactionSupply;
+        }
+        public int getSystemNonHostileSupply() {
+            return systemNonHostileSupply;
+        }
+        public int getSystemHostileSupply() {
+            return systemHostileSupply;
+        }
+        public int getFactionSupply() {
+            return factionSupply;
+        }
+        public int getNonHostileSupply() {
+            return nonHostileSupply;
+        }
+        public int getHostileSupply() {
+            return hostileSupply;
+        }
+        public int getSystemFactionDemand() {
+            return systemFactionDemand;
+        }
+        public int getSystemNonHostileDemand() {
+            return systemNonHostileDemand;
+        }
+        public int getSystemHostileDemand() {
+            return systemHostileDemand;
+        }
+        public int getFactionDemand() {
+            return factionDemand;
+        }
+        public int getNonHostileDemand() {
+            return nonHostileDemand;
+        }
+        public int getHostileDemand() {
+            return hostileDemand;
+        }
+        public int getFactionImports() {
+            return factionImports;
+        }
+        public int getOtherImports() {
+            return otherImports;
+        }
+        public int getFactionExports() {
+            return factionExports;
+        }
+        public int getOtherExports() {
+            return otherExports;
+        }
+        public int getExtra() {
+            return extra;
+        }
+        public int getDeficit() {
+            return deficit;
         }
         private static void sortTradePairs(List<TradePair> pairs, FactionAPI localFaction, StarSystemAPI localSystem, boolean isImport) {
             pairs.sort((a, b) -> {
@@ -212,14 +282,5 @@ public class SystemEconomyData {
         public void setValue(V value) {
             this.value = value;
         }
-    }
-    public enum Scope {
-        SYSTEM, GLOBAL
-    }
-    public enum Relation {
-        FACTION, NON_HOSTILE, HOSTILE
-    }
-    public enum FlowType {
-        SUPPLY, DEMAND
     }
 }

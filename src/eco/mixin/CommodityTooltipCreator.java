@@ -29,6 +29,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 
+import static eco.SystemEconomyService.formatDemandNumber;
+
 public class CommodityTooltipCreator {
     private static final Method createIconLine$super1;
     private static final Method createIconLine$super2;
@@ -100,12 +102,6 @@ public class CommodityTooltipCreator {
             // 数量降序
             return Integer.compare(b.getItemNum(), a.getItemNum());
         });
-    }
-    private static String formatDemandNumber(int n) {
-        if (n >= 100000000) return String.format("%.1f B", n / 1000000000f);
-        if (n >= 100000) return String.format("%.1f M", n / 1000000f);
-        if (n > 100)     return String.format("%.1f K", n / 1000f);
-        return String.valueOf(n);
     }
     public static StandardTooltipV2Expandable createCommodityTooltip(CommodityOnMarketAPI commodity) {
         return new StandardTooltipV2Expandable(500.0F, true) {
@@ -221,22 +217,15 @@ public class CommodityTooltipCreator {
                                 this.addGrid(smallGap);
                             }
 
-                            this.addPara("在星系内，本势力的潜在需求为 {%s}， 非敌对势力的潜在需求为 {%s}， 敌对势力的潜在需求为 {%s}。", paragraphGap,  highlightColor,
-                                    ""+commodityEconomyData.getUnmetData(SystemEconomyData.FlowType.DEMAND, SystemEconomyData.Scope.SYSTEM, SystemEconomyData.Relation.FACTION),
-                                    ""+commodityEconomyData.getUnmetData(SystemEconomyData.FlowType.DEMAND, SystemEconomyData.Scope.SYSTEM, SystemEconomyData.Relation.NON_HOSTILE),
-                                    ""+commodityEconomyData.getUnmetData(SystemEconomyData.FlowType.DEMAND, SystemEconomyData.Scope.SYSTEM, SystemEconomyData.Relation.HOSTILE));
-                            this.addPara("在星域内，本势力的潜在需求为 {%s}， 非敌对势力的潜在需求为 {%s}， 敌对势力的潜在需求为 {%s}。", paragraphGap,  highlightColor,
-                                    ""+commodityEconomyData.getUnmetData(SystemEconomyData.FlowType.DEMAND, SystemEconomyData.Scope.GLOBAL, SystemEconomyData.Relation.FACTION),
-                                    ""+commodityEconomyData.getUnmetData(SystemEconomyData.FlowType.DEMAND, SystemEconomyData.Scope.GLOBAL, SystemEconomyData.Relation.NON_HOSTILE),
-                                    ""+commodityEconomyData.getUnmetData(SystemEconomyData.FlowType.DEMAND, SystemEconomyData.Scope.GLOBAL, SystemEconomyData.Relation.HOSTILE));
-                            this.addPara("在星系内，本势力的过剩产能为 {%s}， 非敌对势力的过剩产能为 {%s}， 敌对势力的过剩产能为 {%s}。", paragraphGap,  highlightColor,
-                                    ""+commodityEconomyData.getUnmetData(SystemEconomyData.FlowType.SUPPLY, SystemEconomyData.Scope.SYSTEM, SystemEconomyData.Relation.FACTION),
-                                    ""+commodityEconomyData.getUnmetData(SystemEconomyData.FlowType.SUPPLY, SystemEconomyData.Scope.SYSTEM, SystemEconomyData.Relation.NON_HOSTILE),
-                                    ""+commodityEconomyData.getUnmetData(SystemEconomyData.FlowType.SUPPLY, SystemEconomyData.Scope.SYSTEM, SystemEconomyData.Relation.HOSTILE));
-                            this.addPara("在星域内，本势力的过剩产能为 {%s}， 非敌对势力的过剩产能为 {%s}， 敌对势力的过剩产能为 {%s}。", paragraphGap,  highlightColor,
-                                    ""+commodityEconomyData.getUnmetData(SystemEconomyData.FlowType.SUPPLY, SystemEconomyData.Scope.GLOBAL, SystemEconomyData.Relation.FACTION),
-                                    ""+commodityEconomyData.getUnmetData(SystemEconomyData.FlowType.SUPPLY, SystemEconomyData.Scope.GLOBAL, SystemEconomyData.Relation.NON_HOSTILE),
-                                    ""+commodityEconomyData.getUnmetData(SystemEconomyData.FlowType.SUPPLY, SystemEconomyData.Scope.GLOBAL, SystemEconomyData.Relation.HOSTILE));
+                            this.addPara("在星系内，本势力的潜在需求为 {%s}， 非敌对势力的潜在需求为 {%s}， 敌对势力的潜在需求为 {%s}。", paragraphGap,  highlightColor, ""+commodityEconomyData.getSystemFactionDemand(), ""+commodityEconomyData.getSystemNonHostileDemand(), ""+commodityEconomyData.getSystemHostileDemand());
+                            this.addPara("在星域内，本势力的潜在需求为 {%s}， 非敌对势力的潜在需求为 {%s}， 敌对势力的潜在需求为 {%s}。", paragraphGap,  highlightColor, ""+commodityEconomyData.getFactionDemand(), ""+commodityEconomyData.getNonHostileDemand(), ""+commodityEconomyData.getHostileDemand());
+                            this.addPara("在星系内，本势力的过剩产能为 {%s}， 非敌对势力的过剩产能为 {%s}， 敌对势力的过剩产能为 {%s}。", paragraphGap,  highlightColor, ""+commodityEconomyData.getSystemFactionSupply(), ""+commodityEconomyData.getSystemNonHostileSupply(), ""+commodityEconomyData.getSystemHostileSupply());
+                            this.addPara("在星域内，本势力的过剩产能为 {%s}， 非敌对势力的过剩产能为 {%s}， 敌对势力的过剩产能为 {%s}。", paragraphGap,  highlightColor, ""+commodityEconomyData.getFactionSupply(), ""+commodityEconomyData.getNonHostileSupply(), ""+commodityEconomyData.getHostileSupply());
+
+                            float globalN = SystemEconomyService.getGlobalData(commodityId) + 0.001f;
+                            float factionN = SystemEconomyService.getFactionGlobalData(commodityId, faction);
+                            float ratio = factionN / globalN * 100;
+                            this.addPara("市场上存在的交易量为 {%s}， 本势力的总出口量为 {%s}， 市场份额为 {%s}。", paragraphGap*2, highlightColor, ""+globalN, ""+factionN,  String.format("%.2f", ratio) + "%");
                         } else {
                             this.addSectionHeading("生产 与 需求", baseColor, darkColor, Alignment.MID, paragraphGap);
                             this.addPara("{%s}", paragraphGap,  Color.red, "无信号" );
