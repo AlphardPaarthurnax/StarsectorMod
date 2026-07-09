@@ -42,8 +42,8 @@ public class SystemEconomyData {
         int factionSupply, nonHostileSupply, hostileSupply;
         int systemFactionDemand, systemNonHostileDemand, systemHostileDemand;
         int factionDemand, nonHostileDemand, hostileDemand;
-
         int factionImports, otherImports, factionExports, otherExports, extra, deficit;
+        String sourceType;
         public CommodityEconomyData(PlanetMarket market, String commodityId){
             this.market = market;
             this.commodityId = commodityId;
@@ -99,6 +99,17 @@ public class SystemEconomyData {
                         otherExports += tradePair.getItemNum();
                     }
                 }
+            }
+            if (factionImports > 0 && otherImports > 0) {
+                sourceType = "IN_FACTION_AND_GLOBAL";
+            } else if (factionImports > 0) {
+                sourceType = "IN_FACTION";
+            } else if (otherImports > 0) {
+                sourceType = "GLOBAL";
+            } else if (supply > 0) {
+                sourceType = "LOCAL";
+            } else {
+                sourceType = "NONE";
             }
             sortTradePairs(importTradePair, market.getFaction(), market.getSystem(), true);
             sortTradePairs(exportTradePair, market.getFaction(), market.getSystem(), false);
@@ -240,6 +251,7 @@ public class SystemEconomyData {
         public int getDeficit() {
             return deficit;
         }
+        public String getSourceType() { return sourceType; }
         private static void sortTradePairs(List<TradePair> pairs, FactionAPI localFaction, StarSystemAPI localSystem, boolean isImport) {
             pairs.sort((a, b) -> {
                 FactionAPI facA = isImport ? a.getFromFaction() : a.getToFaction();

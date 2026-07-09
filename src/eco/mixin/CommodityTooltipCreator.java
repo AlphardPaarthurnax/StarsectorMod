@@ -29,7 +29,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 
-import static eco.SystemEconomyService.formatDemandNumber;
+import static eco.SystemEconomyService.formatNumberString;
 
 public class CommodityTooltipCreator {
     private static final Method createIconLine$super1;
@@ -173,7 +173,7 @@ public class CommodityTooltipCreator {
                                 this.beginGridFlipped(450.0F, 1, 40.0F, paragraphGap);
                                 int gridLineIndex = 0;
                                 for (SystemEconomyData.Pair<String,Integer> item : commodityEconomyData.getSupplyList()) {
-                                    this.addToGrid(0, gridLineIndex++, item.getKey(), formatDemandNumber(item.getValue()), O0OO.ÕO0000);
+                                    this.addToGrid(0, gridLineIndex++, item.getKey(), formatNumberString(item.getValue()), O0OO.ÕO0000);
                                 }
                                 this.addGrid(smallGap);
                             }
@@ -184,7 +184,7 @@ public class CommodityTooltipCreator {
                                 this.beginGridFlipped(450.0F, 1, 40.0F, paragraphGap);
                                 int gridLineIndex = 0;
                                 for (SystemEconomyData.Pair<String,Integer> item : commodityEconomyData.getDemandList()) {
-                                    this.addToGrid(0, gridLineIndex++, item.getKey(), formatDemandNumber(item.getValue()), O0OO.ÒÓ0000);
+                                    this.addToGrid(0, gridLineIndex++, item.getKey(), formatNumberString(item.getValue()), O0OO.ÒÓ0000);
                                 }
                                 this.addGrid(smallGap);
                             }
@@ -200,7 +200,7 @@ public class CommodityTooltipCreator {
                                 this.beginGridFlipped(450.0F, 1, 40.0F, paragraphGap);
                                 int gridLineIndex = 0;
                                 for (SystemEconomyData.Pair<String,Integer> item : commodityEconomyData.getImportsList()) {
-                                    this.addToGrid(0, gridLineIndex++,item.getKey(), formatDemandNumber(item.getValue()), O0OO.ÕO0000);
+                                    this.addToGrid(0, gridLineIndex++,item.getKey(), formatNumberString(item.getValue()), O0OO.ÕO0000);
                                 }
                                 this.addGrid(smallGap);
                             }
@@ -212,7 +212,7 @@ public class CommodityTooltipCreator {
                                 this.beginGridFlipped(450.0F, 1, 40.0F, paragraphGap);
                                 int gridLineIndex = 0;
                                 for (SystemEconomyData.Pair<String,Integer> item : commodityEconomyData.getExportsList()) {
-                                    this.addToGrid(0, gridLineIndex++, item.getKey(), formatDemandNumber(item.getValue()), O0OO.ÕO0000);
+                                    this.addToGrid(0, gridLineIndex++, item.getKey(), formatNumberString(item.getValue()), O0OO.ÕO0000);
                                 }
                                 this.addGrid(smallGap);
                             }

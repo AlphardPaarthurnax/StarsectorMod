@@ -6,7 +6,6 @@ import com.fs.starfarer.api.campaign.PlanetAPI;
 import com.fs.starfarer.api.campaign.StarSystemAPI;
 import com.fs.starfarer.api.campaign.econ.MarketAPI;
 import com.fs.starfarer.api.campaign.listeners.EconomyTickListener;
-import com.fs.starfarer.api.loading.IndustrySpecAPI;
 import eco.data.PlanetMarket;
 import eco.data.SystemMarket;
 import eco.data.Trade;
@@ -155,10 +154,16 @@ public class SystemEconomyService implements EconomyTickListener {
     public static int getFactionGlobalData(String commodityId,FactionAPI faction) {
         return factionGlobalData.getOrDefault(commodityId, Collections.emptyMap()).getOrDefault(faction,0);
     }
-    public static String formatDemandNumber(int n) {
-        if (n >= 100000000) return String.format("%.1f B", n / 1000000000f);
-        if (n >= 100000) return String.format("%.1f M", n / 1000000f);
-        if (n > 100)     return String.format("%.1f K", n / 1000f);
+    public static String formatNumberString(int n) {
+        if (n >= 1E8) return String.format("%.1fB", n / 1E9f);
+        if (n >= 1E5) return String.format("%.1fM", n / 1E6f);
+        if (n > 1E2)     return String.format("%.1fK", n / 1E3f);
         return String.valueOf(n);
+    }
+    public static int formatNumberIntIcon(int n) {
+        if (n >= 1E9) return (int) Math.ceil(n / 1E9f);
+        if (n >= 1E6) return (int) Math.ceil(n / 1E6f);
+        if (n > 1E3)     return (int) Math.ceil(n / 1E3f);
+        return n;
     }
 }
