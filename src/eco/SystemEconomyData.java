@@ -50,8 +50,13 @@ public class SystemEconomyData {
             update();
         }
         public void update(){
+            netSupply = 0;
+            supply = 0;
+            demand = 0;
             supplyList.clear();
             demandList.clear();
+            imports = 0;
+            exports = 0;
             importsList.clear();
             exportsList.clear();
             systemFactionSupply = 0;
@@ -66,6 +71,14 @@ public class SystemEconomyData {
             factionDemand = 0;
             nonHostileDemand = 0;
             hostileDemand = 0;
+            factionImports = 0;
+            otherImports = 0;
+            factionExports = 0;
+            otherExports = 0;
+            extra = 0;
+            deficit = 0;
+            sourceType = "";
+
             this.supply = market.getSupplyRaw(commodityId);
             this.demand = market.getDemandRaw(commodityId);
             this.netSupply = supply - demand;

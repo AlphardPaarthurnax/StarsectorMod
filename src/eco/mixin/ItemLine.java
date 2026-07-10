@@ -65,12 +65,12 @@ public class ItemLine extends m.Oo{
 
             byte limit = 20;
             if (sum > limit) {
-                factionImports = (int) (Math.ceil((float) factionImports / (float) sum) * limit);
-                otherImports = (int) (Math.ceil((float) otherImports / (float) sum) * limit);
-                factionExports = (int) (Math.ceil((float) factionExports / (float) sum) * limit);
-                otherExports = (int) (Math.ceil((float) otherExports / (float) sum) * limit);
-                extra = (int) (Math.ceil((float) extra / (float) sum) * limit);
-                deficit = (int) (Math.ceil((float) deficit / (float) sum) * limit);
+                factionImports = (int) Math.ceil((float)factionImports / (float)sum * (float)limit);
+                otherImports = (int) Math.ceil((float)otherImports / (float)sum * (float)limit);
+                factionExports = (int) Math.ceil((float)factionExports / (float)sum * (float)limit);
+                otherExports = (int) Math.ceil((float)otherExports / (float)sum * (float)limit);
+                extra = (int) Math.ceil((float)extra / (float)sum * (float)limit);
+                deficit = (int) Math.ceil((float)deficit / (float)sum * (float)limit);
             }
             //截断图标<20
 
