@@ -71,8 +71,10 @@ public class ItemLine extends m.Oo{
                 otherExports = (int) Math.ceil((float)otherExports / (float)sum * (float)limit);
                 extra = (int) Math.ceil((float)extra / (float)sum * (float)limit);
                 deficit = (int) Math.ceil((float)deficit / (float)sum * (float)limit);
+            } else if (sum == 0){
+                factionImports = 1;
             }
-            //截断图标<20
+            //截断1<=图标<20
 
             if (factionImports > 0) {
                 this.iconGroup.addGroup(this.commodity, factionImports, 1.0F, f.o.values()[0], null);
@@ -168,6 +170,11 @@ public class ItemLine extends m.Oo{
             }
 
             this.bringToTop(textLabel);
+        }else{
+            d textLabel = d.createSmallInsigniaLabel("无数据", Alignment.MID);textLabel.setColor(Color.red);
+            outlineRender$int(textLabel.getRenderer(),true);
+            textLabel.setSize(width, textLabel.getLineHeight());
+            this.add(textLabel).inLMid(height + 3.0F);
         }
     }
 

@@ -82,27 +82,6 @@ public class CommodityTooltipCreator {
         iconLine.setSize(width, Math.max(height, text.getHeight() - var10 * 2.0F) + var8);
         return iconLine;
     }
-    private static void sortTradePairs(ArrayList<TradePair> pairs, FactionAPI localFaction, StarSystemAPI localSystem, boolean isImport) {
-        pairs.sort((a, b) -> {
-            FactionAPI facA = isImport ? a.getFromFaction() : a.getToFaction();
-            FactionAPI facB = isImport ? b.getFromFaction() : b.getToFaction();
-            StarSystemAPI sysA = isImport ? a.getFromSystem() : a.getToSystem();
-            StarSystemAPI sysB = isImport ? b.getFromSystem() : b.getToSystem();
-
-            // 同势力优先
-            boolean sameFacA = Objects.equals(facA, localFaction);
-            boolean sameFacB = Objects.equals(facB, localFaction);
-            if (sameFacA != sameFacB) return sameFacA ? -1 : 1;
-
-            // 同星系优先
-            boolean sameSysA = Objects.equals(sysA, localSystem);
-            boolean sameSysB = Objects.equals(sysB, localSystem);
-            if (sameSysA != sameSysB) return sameSysA ? -1 : 1;
-
-            // 数量降序
-            return Integer.compare(b.getItemNum(), a.getItemNum());
-        });
-    }
     public static StandardTooltipV2Expandable createCommodityTooltip(CommodityOnMarketAPI commodity) {
         return new StandardTooltipV2Expandable(500.0F, true) {
             public void createImpl(boolean isExpanded) {
@@ -159,6 +138,7 @@ public class CommodityTooltipCreator {
                 } else {
                     PlanetMarket pm = SystemEconomyService.getPlanetMarket(market);
                     if (pm != null) {
+                        this.addPara("Debug：这是PlanetMarket第 {%s} 次更新", paragraphGap, O0OO.ÕO0000, "" + pm.getUpdateTime());
                         SystemEconomyData.CommodityEconomyData commodityEconomyData = SystemEconomyService.getSystemEconomyData(market).getCommodityEconomyData(commodityId);
                         if(commodityEconomyData != null){
                             this.addSectionHeading("生产 与 需求", baseColor, darkColor, Alignment.MID, paragraphGap);
@@ -216,6 +196,8 @@ public class CommodityTooltipCreator {
                                 }
                                 this.addGrid(smallGap);
                             }
+                            this.addSectionHeading("经济数据", baseColor, darkColor, Alignment.MID, paragraphGap);
+                            this.addPara("库存量：{%s} ", paragraphGap, O0OO.ÕO0000, "" + pm.getStock(commodityId));
 
                             this.addPara("在星系内，本势力的潜在需求为 {%s}， 非敌对势力的潜在需求为 {%s}， 敌对势力的潜在需求为 {%s}。", paragraphGap,  highlightColor, ""+commodityEconomyData.getSystemFactionDemand(), ""+commodityEconomyData.getSystemNonHostileDemand(), ""+commodityEconomyData.getSystemHostileDemand());
                             this.addPara("在星域内，本势力的潜在需求为 {%s}， 非敌对势力的潜在需求为 {%s}， 敌对势力的潜在需求为 {%s}。", paragraphGap,  highlightColor, ""+commodityEconomyData.getFactionDemand(), ""+commodityEconomyData.getNonHostileDemand(), ""+commodityEconomyData.getHostileDemand());

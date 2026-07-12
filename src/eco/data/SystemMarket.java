@@ -44,6 +44,11 @@ public class SystemMarket {
             }
         }
     }
+    public void updateTrade() {
+        for(Map.Entry<PlanetAPI, PlanetMarket> pm : planetMarkets.entrySet()){
+            pm.getValue().updateTrade();
+        }
+    }
     public void cleanTrade() {
         supplyList.removeIf(trade -> trade.getItemNum() <= 0);
         demandList.removeIf(trade -> trade.getItemNum() <= 0);

@@ -12,16 +12,29 @@ import eco.data.Trade;
 import eco.data.TradePair;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class SystemEconomyService implements EconomyTickListener {
+    private static int lastProcessedMonth = -1;
     /**{@code <systemId, SystemMarket> }*/
     private static Map<StarSystemAPI, SystemMarket> systemMarkets = new HashMap<>();
     private static Map<MarketAPI,SystemEconomyData> allData = new HashMap<>();
     private static Map<String,Integer> globalData = new HashMap<>();
     private static Map<String, Map<FactionAPI, Integer>> factionGlobalData = new HashMap<>();
     /** 从allMarkets到systemMarkets*/
-    private static Map<StarSystemAPI, SystemMarket> getMarkets(List<MarketAPI> allMarkets) {
-        Map<StarSystemAPI, SystemMarket> result = new HashMap<>();
+    private static void getMarkets(List<MarketAPI> allMarkets) {
+        Set<MarketAPI> marketSet = allMarkets.stream().filter(MarketAPI::isInEconomy).collect(Collectors.toSet());;
+        systemMarkets.entrySet().removeIf(systemEntry -> {
+            SystemMarket systemMarket = systemEntry.getValue();
+
+            systemMarket.getPlanetMarkets().entrySet().removeIf(planetEntry ->
+                    !marketSet.contains(planetEntry.getValue().getMarket())
+            );
+
+            return systemMarket.getPlanetMarkets().isEmpty();
+        });
+        //清除
+
         for (MarketAPI market : allMarkets) {
             if (!market.isInEconomy()) continue;
 
@@ -30,16 +43,15 @@ public class SystemEconomyService implements EconomyTickListener {
             FactionAPI faction = market.getFaction();
             if (system == null || planet == null) continue;
 
-            PlanetMarket planetMarket = new PlanetMarket(system, planet, market, faction);
-            planetMarket.updateSupplyAndDemand();
-
-
-            result.computeIfAbsent(system, k -> new SystemMarket(system)).addPlanetMarket(planetMarket.getPlanet(), planetMarket);
+            systemMarkets.computeIfAbsent(system, i -> new SystemMarket(system))
+                    .getPlanetMarkets().computeIfAbsent(planet, j -> new PlanetMarket(system, planet, market, faction))
+                    .updateSupplyAndDemand();
         }
-        for(Map.Entry<StarSystemAPI, SystemMarket> sm : result.entrySet()){
+        //创建
+        for(Map.Entry<StarSystemAPI, SystemMarket> sm : systemMarkets.entrySet()){
             sm.getValue().updateSupplyAndDemand();
         }
-        return result;
+        //更新
     }
     /** 匹配跨systemMarkets订单*/
     private static void matchInterSystemTrade(){
@@ -127,12 +139,19 @@ public class SystemEconomyService implements EconomyTickListener {
     public void reportEconomyTick(int iterIndex) {}
     @Override
     public void reportEconomyMonthEnd() {
+        int currentMonth = Global.getSector().getClock().getMonth();
+        if (currentMonth == lastProcessedMonth) return;
+        lastProcessedMonth = currentMonth;
+
         List<MarketAPI> allMarkets = Global.getSector().getEconomy().getMarketsCopy();
-        systemMarkets = getMarkets(allMarkets);
+        getMarkets(allMarkets);
         for (Map.Entry<StarSystemAPI, SystemMarket> systemMarketPair : systemMarkets.entrySet()) {
             systemMarketPair.getValue().matchTrade();
         }
         matchInterSystemTrade();
+        for (Map.Entry<StarSystemAPI, SystemMarket> systemMarketPair : systemMarkets.entrySet()) {
+            systemMarketPair.getValue().updateTrade();
+        }
         collateData();
     }
     public static PlanetMarket getPlanetMarket(MarketAPI market) {

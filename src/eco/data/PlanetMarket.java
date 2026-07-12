@@ -6,6 +6,7 @@ import com.fs.starfarer.api.campaign.StarSystemAPI;
 import com.fs.starfarer.api.campaign.econ.CommodityOnMarketAPI;
 import com.fs.starfarer.api.campaign.econ.Industry;
 import com.fs.starfarer.api.campaign.econ.MarketAPI;
+import com.fs.starfarer.api.campaign.econ.MutableCommodityQuantity;
 
 import java.util.*;
 
@@ -14,6 +15,9 @@ public class PlanetMarket{
     private final PlanetAPI planet;
     private final MarketAPI market;
     private final FactionAPI faction;
+    private int updateTime = 0;
+    //库存
+    private Map<String, Long> stock = new HashMap<>();
     // 逐工业 产能/消耗
     private Map<String, Map<Industry, Integer>> supplyFactory = new LinkedHashMap<>();
     private Map<String, Map<Industry, Integer>> demandFactory = new LinkedHashMap<>();
@@ -39,31 +43,78 @@ public class PlanetMarket{
         demandRaw.clear();
         supply.clear();
         demand.clear();
-        for (CommodityOnMarketAPI item : market.getAllCommodities()) {
-            if (item.isNonEcon()) continue;
-            int totalSupply = 0;
-            int totalDemand = 0;
+
+        updateTime++;
+
+        float peopleScale = getPeopleScale(market.getSize());
+
+        if(stock.isEmpty()){
             for (Industry ind : market.getIndustries()) {
-                int supplyNum = (int) (ind.getSupply(item.getId()).getQuantity().getModifiedInt() * getPeopleScale(market.getSize()));
-                totalSupply += supplyNum;
-                if(supplyNum > 0){
-                    supplyFactory.computeIfAbsent(item.getId(), k -> new LinkedHashMap<>()).put(ind, supplyNum);
+                for (MutableCommodityQuantity supplyMCQ : ind.getAllSupply()) {
+                    stock.merge(supplyMCQ.getCommodityId(), (long) (supplyMCQ.getQuantity().getModifiedInt() * peopleScale), Long::sum);
                 }
-                int demandNum = (int) (ind.getDemand(item.getId()).getQuantity().getModifiedInt() * getPeopleScale(market.getSize()));
-                totalDemand += demandNum;
-                if(demandNum > 0){
-                    demandFactory.computeIfAbsent(item.getId(), k -> new LinkedHashMap<>()).put(ind, demandNum);
+                for (MutableCommodityQuantity demandMCQ : ind.getAllDemand()) {
+                    stock.merge(demandMCQ.getCommodityId(), (long) (demandMCQ.getQuantity().getModifiedInt() * peopleScale), Long::sum);
                 }
             }
-            supplyRaw.put(item.getId(), totalSupply);
-            demandRaw.put(item.getId(), totalDemand);
+        }
+        //初始化库存
 
-            int netMargin = totalSupply - totalDemand;
-            if (netMargin > 0) supply.put(item.getId(), netMargin);
-            if (netMargin < 0) demand.put(item.getId(), -netMargin);
+        Map<String, Integer> demandPre = new HashMap<>();
+        Map<String, Float> ratio = new HashMap<>();
+
+        for (Industry ind : market.getIndustries()) {
+            for (MutableCommodityQuantity demandMCQ : ind.getAllDemand()) {
+                demandPre.merge(demandMCQ.getCommodityId(), (int) Math.floor(demandMCQ.getQuantity().getModifiedInt() * peopleScale), Integer::sum);
+            }
+        }
+        for(Map.Entry<String, Integer> pre : demandPre.entrySet()){
+            ratio.put(pre.getKey(), Math.min(1.0f, (float) stock.getOrDefault(pre.getKey(), 0L) / pre.getValue()));
+        }
+        //产率
+
+        for (Industry ind : market.getIndustries()) {
+            float industryRatio = 1f;
+            for (MutableCommodityQuantity demandMCQ : ind.getAllDemand()) {
+                industryRatio = Math.min(industryRatio, ratio.get(demandMCQ.getCommodityId()));
+            }
+            industryRatio = Math.max(0.1f, industryRatio);
+
+            for (MutableCommodityQuantity supplyMCQ : ind.getAllSupply()) {
+                String commodityId = supplyMCQ.getCommodityId();
+                int supplyR = (int) Math.floor(supplyMCQ.getQuantity().getModifiedInt() * peopleScale * industryRatio);
+
+                stock.merge(commodityId, (long) supplyR, Long::sum);
+                supplyRaw.merge(commodityId, supplyR, Integer::sum);
+                demandRaw.merge(commodityId, 0, Integer::sum);
+                supplyFactory.computeIfAbsent(commodityId, k -> new LinkedHashMap<>()).put(ind, supplyR);
+            }
+            for (MutableCommodityQuantity demandMCQ : ind.getAllDemand()) {
+                String commodityId = demandMCQ.getCommodityId();
+                int demandR = (int) Math.floor(demandMCQ.getQuantity().getModifiedInt() * peopleScale * industryRatio);
+
+                stock.merge(demandMCQ.getCommodityId(), (long) -demandR, Long::sum);
+                supplyRaw.merge(commodityId, 0, Integer::sum);
+                demandRaw.merge(commodityId, demandR, Integer::sum);
+                demandFactory.computeIfAbsent(commodityId, k -> new LinkedHashMap<>()).put(ind, demandR);
+            }
+        }
+        for(Map.Entry<String, Integer> raw : supplyRaw.entrySet()){
+            int net = supplyRaw.get(raw.getKey()) - demandRaw.get(raw.getKey());
+            if (net > 0) supply.put(raw.getKey(), net);
+            if (net < 0) demand.put(raw.getKey(), -net);
+        }
+        //核心
+    }
+    public void updateTrade(){
+        for(TradePair trade : supplyTrade){
+            stock.merge(trade.getItemId(), (long) -trade.getItemNum(),Long::sum);
+        }
+        for(TradePair trade : demandTrade){
+            stock.merge(trade.getItemId(), (long) trade.getItemNum(),Long::sum);
         }
     }
-    private float getPeopleScale(int size) {
+        private float getPeopleScale(int size) {
         if (size <= 1) return 0.01f;
         if (size == 2) return 0.10f;
         if (size == 3) return 1.0f;
@@ -94,5 +145,11 @@ public class PlanetMarket{
         ids.addAll(supplyRaw.keySet());
         ids.addAll(demandRaw.keySet());
         return ids;
+    }
+    public int getUpdateTime(){
+        return updateTime;
+    }
+    public long getStock(String commodityId){
+        return stock.getOrDefault(commodityId, 0L);
     }
 }
