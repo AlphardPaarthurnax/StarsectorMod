@@ -1,4 +1,4 @@
-package data.scripts.animation.animations;
+package com.github.alphardpaarthurnax.script.animation.animations;
 
 import com.fs.starfarer.api.campaign.CampaignEngineLayers;
 import com.fs.starfarer.api.combat.ViewportAPI;

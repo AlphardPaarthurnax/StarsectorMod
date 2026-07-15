@@ -10,10 +10,10 @@ import eco.data.TradePair;
 
 import java.util.*;
 
-public class SystemEconomyData {
+public class PlanteEconomyData {
     PlanetMarket market;
     Map<String, CommodityEconomyData> commoditys = new HashMap<>();
-    public SystemEconomyData(PlanetMarket market){
+    public PlanteEconomyData(PlanetMarket market){
         this.market = market;
         update();
     }
@@ -43,6 +43,7 @@ public class SystemEconomyData {
         int systemFactionDemand, systemNonHostileDemand, systemHostileDemand;
         int factionDemand, nonHostileDemand, hostileDemand;
         int factionImports, otherImports, factionExports, otherExports, extra, deficit;
+        float factionGDT, planetGDT, factionGDP, planetGDP, factionEDP, planetEDP, price;
         String sourceType;
         public CommodityEconomyData(PlanetMarket market, String commodityId){
             this.market = market;
@@ -78,6 +79,13 @@ public class SystemEconomyData {
             extra = 0;
             deficit = 0;
             sourceType = "";
+            factionGDT = 0;
+            planetGDT = 0;
+            factionGDP = 0;
+            planetGDP = 0;
+            factionEDP = 0;
+            planetEDP = 0;
+            price = 0;
 
             this.supply = market.getSupplyRaw(commodityId);
             this.demand = market.getDemandRaw(commodityId);
@@ -182,6 +190,13 @@ public class SystemEconomyData {
                     }
                 }
             }
+            price = market.getPrice(commodityId);
+            factionGDT = factionExports * price;
+            planetGDT = exports * price;
+            factionGDP = factionSupply * price;
+            planetGDP = supply * price;
+            factionEDP = factionGDP - factionGDT;
+            planetEDP = planetGDP - planetGDT;
         }
         public int getNetSupply() {
             return netSupply;
@@ -265,6 +280,27 @@ public class SystemEconomyData {
             return deficit;
         }
         public String getSourceType() { return sourceType; }
+        public float getFactionGDT() {
+            return factionGDT;
+        }
+        public float getPlanetGDT() {
+            return planetGDT;
+        }
+        public float getFactionGDP() {
+            return factionGDP;
+        }
+        public float getPlanetGDP() {
+            return planetGDP;
+        }
+        public float getFactionEDP() {
+            return factionEDP;
+        }
+        public float getPlanetEDP() {
+            return planetEDP;
+        }
+        public float getPrice() {
+            return price;
+        }
         private static void sortTradePairs(List<TradePair> pairs, FactionAPI localFaction, StarSystemAPI localSystem, boolean isImport) {
             pairs.sort((a, b) -> {
                 FactionAPI facA = isImport ? a.getFromFaction() : a.getToFaction();

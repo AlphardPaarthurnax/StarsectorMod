@@ -1,4 +1,4 @@
-package data.scripts.animation.animations;
+package com.github.alphardpaarthurnax.script.animation.animations;
 
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.CampaignEngineLayers;
@@ -8,12 +8,11 @@ import com.fs.starfarer.api.graphics.SpriteAPI;
 import org.lazywizard.lazylib.MathUtils;
 import org.lwjgl.util.vector.Vector2f;
 
-import javax.swing.text.GlyphView;
 import java.awt.*;
 import java.util.EnumSet;
 
-import static data.scripts.utils.GraphicUtils.lerpColor;
-import static data.scripts.utils.GraphicUtils.smoothstep;
+import static com.github.alphardpaarthurnax.script.utils.GraphicUtils.lerpColor;
+import static com.github.alphardpaarthurnax.script.utils.GraphicUtils.smoothstep;
 
 public class ShockwaveAnimation extends Animation{
     private transient SpriteAPI sprite;

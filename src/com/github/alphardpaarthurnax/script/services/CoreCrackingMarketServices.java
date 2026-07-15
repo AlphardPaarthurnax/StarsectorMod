@@ -1,15 +1,15 @@
-package data.scripts.services;
+package com.github.alphardpaarthurnax.script.services;
 
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.*;
 import com.fs.starfarer.api.campaign.econ.MarketAPI;
 import com.fs.starfarer.api.impl.campaign.CoreReputationPlugin;
 import com.fs.starfarer.api.impl.campaign.CoreReputationPlugin.CustomRepImpact;
-import data.scripts.CoreCrackingModPlugin;
-import data.scripts.data.AsteroidsData;
-import data.scripts.intel.PlanetCrackedIntel;
-import data.scripts.utils.AsteroidsUtils;
-import data.scripts.utils.CCUtils;
+import com.github.alphardpaarthurnax.script.CoreCrackingModPlugin;
+import com.github.alphardpaarthurnax.script.data.AsteroidsData;
+import com.github.alphardpaarthurnax.script.intel.PlanetCrackedIntel;
+import com.github.alphardpaarthurnax.script.utils.AsteroidsUtils;
+import com.github.alphardpaarthurnax.script.utils.CCUtils;
 
 import java.awt.*;
 

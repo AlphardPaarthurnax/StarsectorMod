@@ -1,8 +1,8 @@
-package data.scripts.animation;
+package com.github.alphardpaarthurnax.script.animation;
 
 import com.fs.starfarer.api.campaign.PlanetAPI;
-import data.scripts.animation.animations.FlashAnimation;
-import data.scripts.animation.animations.ShockwaveAnimation;
+import com.github.alphardpaarthurnax.script.animation.animations.FlashAnimation;
+import com.github.alphardpaarthurnax.script.animation.animations.ShockwaveAnimation;
 
 import java.awt.Color;
 

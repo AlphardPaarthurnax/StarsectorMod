@@ -1,5 +1,6 @@
 package eco.data;
 
+import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.FactionAPI;
 import com.fs.starfarer.api.campaign.PlanetAPI;
 import com.fs.starfarer.api.campaign.StarSystemAPI;
@@ -7,8 +8,11 @@ import com.fs.starfarer.api.campaign.econ.CommodityOnMarketAPI;
 import com.fs.starfarer.api.campaign.econ.Industry;
 import com.fs.starfarer.api.campaign.econ.MarketAPI;
 import com.fs.starfarer.api.campaign.econ.MutableCommodityQuantity;
+import eco.SystemEconomyService;
 
 import java.util.*;
+
+import static eco.SystemEconomyService.clamp;
 
 public class PlanetMarket{
     private final StarSystemAPI system;
@@ -18,6 +22,8 @@ public class PlanetMarket{
     private int updateTime = 0;
     //库存
     private Map<String, Long> stock = new HashMap<>();
+    //价格
+    private Map<String, Float> prices = new HashMap<>();
     // 逐工业 产能/消耗
     private Map<String, Map<Industry, Integer>> supplyFactory = new LinkedHashMap<>();
     private Map<String, Map<Industry, Integer>> demandFactory = new LinkedHashMap<>();
@@ -114,7 +120,35 @@ public class PlanetMarket{
             stock.merge(trade.getItemId(), (long) trade.getItemNum(),Long::sum);
         }
     }
-        private float getPeopleScale(int size) {
+    public void updatePrices(){
+        for(String commodityId : getCommodityIds()){
+            float targetStock = demandRaw.getOrDefault(commodityId, 0) * 3f;
+
+            float stockRatio = stock.getOrDefault(commodityId, 0L) / Math.max(targetStock, 1f);
+            float stockPressure = 1f - clamp(stockRatio, 0f, 1f);
+
+            float shortage = demandRaw.getOrDefault(commodityId, 0) - supplyRaw.getOrDefault(commodityId, 0);
+            float demandPressure = shortage / Math.max(demandRaw.getOrDefault(commodityId, 0), 1f);
+            demandPressure = clamp(demandPressure, -1f, 1f);
+
+            float pressure = demandPressure * 0.6f + stockPressure * 0.4f;
+            pressure = clamp(pressure, -1f, 1f);
+
+            float smooth = pressure * pressure * (3f - 2f * Math.abs(pressure));
+            smooth *= Math.signum(pressure);
+
+            float multiplier;
+
+            if (smooth >= 0f) {
+                multiplier = 1f + smooth * 10f;
+            } else {
+                multiplier = 1f + smooth * 0.9f;
+            }
+
+            prices.put(commodityId, SystemEconomyService.getGlobalPrice(commodityId) * multiplier);
+        }
+    }
+    private float getPeopleScale(int size) {
         if (size <= 1) return 0.01f;
         if (size == 2) return 0.10f;
         if (size == 3) return 1.0f;
@@ -151,5 +185,8 @@ public class PlanetMarket{
     }
     public long getStock(String commodityId){
         return stock.getOrDefault(commodityId, 0L);
+    }
+    public float getPrice(String commodityId) {
+        return prices.getOrDefault(commodityId, 0f);
     }
 }

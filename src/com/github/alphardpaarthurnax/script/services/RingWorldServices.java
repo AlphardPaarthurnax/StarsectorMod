@@ -1,11 +1,11 @@
-package data.scripts.services;
+package com.github.alphardpaarthurnax.script.services;
 
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.SectorEntityToken;
 import com.fs.starfarer.api.campaign.StarSystemAPI;
 import com.fs.starfarer.api.campaign.econ.MarketAPI;
 import com.fs.starfarer.api.impl.campaign.ids.Conditions;
-import data.scripts.data.AsteroidsData;
+import com.github.alphardpaarthurnax.script.data.AsteroidsData;
 
 import java.awt.*;
 

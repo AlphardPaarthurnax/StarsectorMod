@@ -1,4 +1,4 @@
-package data.scripts;
+package com.github.alphardpaarthurnax.script;
 
 import com.fs.starfarer.api.BaseModPlugin;
 import com.fs.starfarer.api.Global;

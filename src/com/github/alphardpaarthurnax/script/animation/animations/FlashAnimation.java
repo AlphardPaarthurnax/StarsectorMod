@@ -1,4 +1,4 @@
-package data.scripts.animation.animations;
+package com.github.alphardpaarthurnax.script.animation.animations;
 
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.CampaignEngineLayers;
@@ -10,7 +10,7 @@ import org.lwjgl.util.vector.Vector2f;
 import java.awt.*;
 import java.util.EnumSet;
 
-import static data.scripts.utils.GraphicUtils.smoothstep;
+import static com.github.alphardpaarthurnax.script.utils.GraphicUtils.smoothstep;
 
 /** fusion_lamp_glow原图中心16*16约为满alpha,32*32为光晕大小<br>
  * 因此在使用时需注意将图片大小设为期望核心大小*4 */

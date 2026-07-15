@@ -1,4 +1,4 @@
-package data.scripts.intel;
+package com.github.alphardpaarthurnax.script.intel;
 
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.CampaignClockAPI;
@@ -10,7 +10,7 @@ import com.fs.starfarer.api.ui.TooltipMakerAPI;
 
 import java.util.Set;
 
-import static data.scripts.data.DialogData.*;
+import static com.github.alphardpaarthurnax.script.data.DialogData.*;
 
 public class PlanetCrackedIntel extends BaseIntelPlugin {
     private final String systemName;

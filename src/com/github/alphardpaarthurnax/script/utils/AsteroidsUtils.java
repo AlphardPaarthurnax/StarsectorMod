@@ -1,9 +1,9 @@
-package data.scripts.utils;
+package com.github.alphardpaarthurnax.script.utils;
 
 import com.fs.starfarer.api.campaign.*;
 import com.fs.starfarer.api.impl.campaign.ids.Terrain;
 import com.fs.starfarer.api.util.WeightedRandomPicker;
-import data.scripts.data.AsteroidsData;
+import com.github.alphardpaarthurnax.script.data.AsteroidsData;
 
 import java.awt.*;
 import java.util.ArrayList;

@@ -12,8 +12,8 @@ import com.fs.starfarer.api.impl.campaign.procgen.StarSystemGenerator;
 import com.fs.starfarer.api.impl.campaign.terrain.HyperspaceTerrainPlugin;
 import com.fs.starfarer.api.util.Misc;
 import com.fs.starfarer.api.util.WeightedRandomPicker;
-import data.scripts.data.AsteroidsData;
-import data.scripts.utils.AsteroidsUtils;
+import com.github.alphardpaarthurnax.script.data.AsteroidsData;
+import com.github.alphardpaarthurnax.script.utils.AsteroidsUtils;
 
 import java.awt.*;
 import java.util.ArrayList;

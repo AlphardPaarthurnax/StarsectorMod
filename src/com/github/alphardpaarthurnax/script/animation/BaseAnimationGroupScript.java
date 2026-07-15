@@ -1,7 +1,7 @@
-package data.scripts.animation;
+package com.github.alphardpaarthurnax.script.animation;
 
 import com.fs.starfarer.api.EveryFrameScript;
-import data.scripts.animation.animations.Animation;
+import com.github.alphardpaarthurnax.script.animation.animations.Animation;
 
 import java.util.ArrayList;
 import java.util.List;

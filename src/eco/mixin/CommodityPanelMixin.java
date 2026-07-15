@@ -61,7 +61,7 @@ public abstract class CommodityPanelMixin extends voidsuper implements U, oo0O.o
         }
     }
     @Inject(method = "sizeChanged", at = @At("HEAD"), cancellable = true)
-    public void replaceSizeChanged(float width, float height, CallbackInfo ci) {
+    public void injectSizeChanged(float width, float height, CallbackInfo ci) {
         this.clearChildren();
         super.sizeChanged(width, height);
         List<CommodityOnMarketAPI> commodityList = CPM$getCommoditys();
@@ -108,7 +108,7 @@ public abstract class CommodityPanelMixin extends voidsuper implements U, oo0O.o
         ci.cancel();
     }
     @Inject(method = "actionPerformed", at = @At("HEAD"), cancellable = true)
-    public void replaceActionPerformed(Object source, Object target, CallbackInfo ci) {
+    public void injectActionPerformed(Object source, Object target, CallbackInfo ci) {
         if (target instanceof n button) {
             CommodityOnMarket commodity = ((ItemLine)button.getPanel()).getCommodity();
             if (this.Ö0Ôo00 == null) {
@@ -117,6 +117,20 @@ public abstract class CommodityPanelMixin extends voidsuper implements U, oo0O.o
                 CPM$setDialogState();
             } else {
                 this.Ö0Ôo00.switchToCommodity(commodity);
+            }
+        }
+        ci.cancel();
+    }
+    @Inject(method = "selectRow", at = @At("HEAD"), cancellable = true)
+    public void injectSelectRow(CommodityOnMarket commodity, CallbackInfo ci){
+        for (Object child : this.getChildrenCopy()) {
+            if (child instanceof n button) {
+                ItemLine itemLine = (ItemLine) button.getPanel();
+                if (itemLine.getCommodity().getId().equals(commodity.getId())) {
+                    button.highlight();
+                } else {
+                    button.unhighlight();
+                }
             }
         }
         ci.cancel();

@@ -3,10 +3,8 @@ package eco.mixin;
 import com.fs.starfarer.O0OO;
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.FactionAPI;
-import com.fs.starfarer.api.campaign.StarSystemAPI;
 import com.fs.starfarer.api.campaign.econ.CommodityOnMarketAPI;
 import com.fs.starfarer.api.campaign.econ.CommoditySpecAPI;
-import com.fs.starfarer.api.campaign.econ.Industry;
 import com.fs.starfarer.api.campaign.econ.MarketAPI;
 import com.fs.starfarer.api.impl.SharedUnlockData;
 import com.fs.starfarer.api.impl.codex.CodexDataV2;
@@ -19,15 +17,13 @@ import com.fs.starfarer.loading.SpecStore;
 import com.fs.starfarer.ui.d;
 import com.fs.starfarer.ui.impl.StandardTooltipV2Expandable;
 import com.fs.starfarer.ui.interfacenew;
-import eco.SystemEconomyData;
+import eco.PlanteEconomyData;
 import eco.SystemEconomyService;
 import eco.data.PlanetMarket;
-import eco.data.TradePair;
 
 import java.awt.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.*;
 
 import static eco.SystemEconomyService.formatNumberString;
 
@@ -139,7 +135,7 @@ public class CommodityTooltipCreator {
                     PlanetMarket pm = SystemEconomyService.getPlanetMarket(market);
                     if (pm != null) {
                         this.addPara("Debug：这是PlanetMarket第 {%s} 次更新", paragraphGap, O0OO.ÕO0000, "" + pm.getUpdateTime());
-                        SystemEconomyData.CommodityEconomyData commodityEconomyData = SystemEconomyService.getSystemEconomyData(market).getCommodityEconomyData(commodityId);
+                        PlanteEconomyData.CommodityEconomyData commodityEconomyData = SystemEconomyService.getSystemEconomyData(market).getCommodityEconomyData(commodityId);
                         if(commodityEconomyData != null){
                             this.addSectionHeading("生产 与 需求", baseColor, darkColor, Alignment.MID, paragraphGap);
 
@@ -152,7 +148,7 @@ public class CommodityTooltipCreator {
                                 this.addPara("产量：{%s}", paragraphGap, highlightColor, "" + commodityEconomyData.getSupply());
                                 this.beginGridFlipped(450.0F, 1, 40.0F, paragraphGap);
                                 int gridLineIndex = 0;
-                                for (SystemEconomyData.Pair<String,Integer> item : commodityEconomyData.getSupplyList()) {
+                                for (PlanteEconomyData.Pair<String,Integer> item : commodityEconomyData.getSupplyList()) {
                                     this.addToGrid(0, gridLineIndex++, item.getKey(), formatNumberString(item.getValue()), O0OO.ÕO0000);
                                 }
                                 this.addGrid(smallGap);
@@ -163,7 +159,7 @@ public class CommodityTooltipCreator {
                                 this.addPara("需求：{%s}", paragraphGap, highlightColor, "" + commodityEconomyData.getDemand());
                                 this.beginGridFlipped(450.0F, 1, 40.0F, paragraphGap);
                                 int gridLineIndex = 0;
-                                for (SystemEconomyData.Pair<String,Integer> item : commodityEconomyData.getDemandList()) {
+                                for (PlanteEconomyData.Pair<String,Integer> item : commodityEconomyData.getDemandList()) {
                                     this.addToGrid(0, gridLineIndex++, item.getKey(), formatNumberString(item.getValue()), O0OO.ÒÓ0000);
                                 }
                                 this.addGrid(smallGap);
@@ -179,7 +175,7 @@ public class CommodityTooltipCreator {
                                 this.addPara("进口量：{%s}", paragraphGap, highlightColor, "" + commodityEconomyData.getImports());
                                 this.beginGridFlipped(450.0F, 1, 40.0F, paragraphGap);
                                 int gridLineIndex = 0;
-                                for (SystemEconomyData.Pair<String,Integer> item : commodityEconomyData.getImportsList()) {
+                                for (PlanteEconomyData.Pair<String,Integer> item : commodityEconomyData.getImportsList()) {
                                     this.addToGrid(0, gridLineIndex++,item.getKey(), formatNumberString(item.getValue()), O0OO.ÕO0000);
                                 }
                                 this.addGrid(smallGap);
@@ -191,7 +187,7 @@ public class CommodityTooltipCreator {
                                 this.addPara("出口量：{%s}", paragraphGap, highlightColor, "" + commodityEconomyData.getExports());
                                 this.beginGridFlipped(450.0F, 1, 40.0F, paragraphGap);
                                 int gridLineIndex = 0;
-                                for (SystemEconomyData.Pair<String,Integer> item : commodityEconomyData.getExportsList()) {
+                                for (PlanteEconomyData.Pair<String,Integer> item : commodityEconomyData.getExportsList()) {
                                     this.addToGrid(0, gridLineIndex++, item.getKey(), formatNumberString(item.getValue()), O0OO.ÕO0000);
                                 }
                                 this.addGrid(smallGap);
@@ -208,6 +204,10 @@ public class CommodityTooltipCreator {
                             float factionN = SystemEconomyService.getFactionGlobalData(commodityId, faction);
                             float ratio = factionN / globalN * 100;
                             this.addPara("市场上存在的交易量为 {%s}， 本势力的总出口量为 {%s}， 市场份额为 {%s}。", paragraphGap*2, highlightColor, ""+globalN, ""+factionN,  String.format("%.2f", ratio) + "%");
+                            this.addPara("该物品全局价格为 {%s}，本星球价格为 {%s}, 基础价格为 {%s}", paragraphGap, highlightColor, formatNumberString(SystemEconomyService.getGlobalPrice(commodityId)), formatNumberString(commodityEconomyData.getPrice()), formatNumberString(Global.getSettings().getCommoditySpec(commodityId).getBasePrice()));
+                            this.addPara("市场上存在的交易总值为 {%s}， 本势力的交易总值为 {%s}， 本星球的的交易总值为 {%s}。", paragraphGap, highlightColor,formatNumberString(SystemEconomyService.getGDT(commodityId)), formatNumberString(commodityEconomyData.getFactionGDT()), formatNumberString(commodityEconomyData.getPlanetGDT()));
+                            this.addPara("市场上存在的生产总值为 {%s}， 本势力的生产总值为 {%s}， 本星球的的生产总值为 {%s}。", paragraphGap, highlightColor,formatNumberString(SystemEconomyService.getGDP(commodityId)), formatNumberString(commodityEconomyData.getFactionGDP()), formatNumberString(commodityEconomyData.getPlanetGDP()));
+                            this.addPara("市场上存在的过剩总值为 {%s}， 本势力的过剩总值为 {%s}， 本星球的的过剩总值为 {%s}。", paragraphGap, highlightColor,formatNumberString(SystemEconomyService.getEDP(commodityId)), formatNumberString(commodityEconomyData.getFactionEDP()), formatNumberString(commodityEconomyData.getPlanetEDP()));
                         } else {
                             this.addSectionHeading("生产 与 需求", baseColor, darkColor, Alignment.MID, paragraphGap);
                             this.addPara("{%s}", paragraphGap,  Color.red, "无信号" );

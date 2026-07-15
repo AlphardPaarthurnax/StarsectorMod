@@ -1,4 +1,4 @@
-package data.scripts.utils;
+package com.github.alphardpaarthurnax.script.utils;
 
 
 import java.awt.*;

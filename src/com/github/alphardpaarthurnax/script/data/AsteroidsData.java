@@ -1,4 +1,4 @@
-package data.scripts.data;
+package com.github.alphardpaarthurnax.script.data;
 
 public class AsteroidsData {
     public static final float minRingRadius = 2048f;

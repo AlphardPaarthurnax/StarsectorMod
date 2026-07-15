@@ -1,4 +1,4 @@
-package data.scripts.data;
+package com.github.alphardpaarthurnax.script.data;
 
 import com.fs.starfarer.api.util.Misc;
 

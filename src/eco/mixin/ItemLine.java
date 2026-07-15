@@ -8,7 +8,7 @@ import com.fs.starfarer.campaign.ui.marketinfo.ooO0;
 import com.fs.starfarer.renderers.O;
 import com.fs.starfarer.ui.*;
 import com.fs.graphics.A.ooOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO;
-import eco.SystemEconomyData;
+import eco.PlanteEconomyData;
 import eco.SystemEconomyService;
 
 import java.awt.*;
@@ -50,8 +50,8 @@ public class ItemLine extends m.Oo{
         this.iconGroup.setWideSpacing(true);
         this.iconGroup.setMediumSpacing(true);
 
-        SystemEconomyData systemEconomyData = SystemEconomyService.getSystemEconomyData(commodity.getMarket());
-        SystemEconomyData.CommodityEconomyData commodityEconomyData = (systemEconomyData != null) ? systemEconomyData.getCommodityEconomyData(commodity.getId()) : null;
+        PlanteEconomyData systemEconomyData = SystemEconomyService.getSystemEconomyData(commodity.getMarket());
+        PlanteEconomyData.CommodityEconomyData commodityEconomyData = (systemEconomyData != null) ? systemEconomyData.getCommodityEconomyData(commodity.getId()) : null;
 
         if(commodityEconomyData != null){
             int factionImports = formatNumberIntIcon(commodityEconomyData.getFactionImports());//本势力进口

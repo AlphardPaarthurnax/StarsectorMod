@@ -16,11 +16,16 @@ import java.util.stream.Collectors;
 
 public class SystemEconomyService implements EconomyTickListener {
     private static int lastProcessedMonth = -1;
-    /**{@code <systemId, SystemMarket> }*/
     private static Map<StarSystemAPI, SystemMarket> systemMarkets = new HashMap<>();
-    private static Map<MarketAPI,SystemEconomyData> allData = new HashMap<>();
+    private static Map<MarketAPI, PlanteEconomyData> allData = new HashMap<>();
+    /** 存在的交易 */
     private static Map<String,Integer> globalData = new HashMap<>();
+    private static Map<String, Float> globalPrices = new HashMap<>();
+    /** 存在的某势力交易 */
     private static Map<String, Map<FactionAPI, Integer>> factionGlobalData = new HashMap<>();
+    private static Map<String, Float> GDP = new HashMap<>();
+    private static Map<String, Float> GDT = new HashMap<>();
+    private static Map<String, Float> EDP = new HashMap<>();
     /** 从allMarkets到systemMarkets*/
     private static void getMarkets(List<MarketAPI> allMarkets) {
         Set<MarketAPI> marketSet = allMarkets.stream().filter(MarketAPI::isInEconomy).collect(Collectors.toSet());;
@@ -121,18 +126,73 @@ public class SystemEconomyService implements EconomyTickListener {
         systemMarkets.get(supplyTrade.getSystem()).getPlanetMarkets().get(supplyTrade.getPlanet()).addSupplyTrade(tradePair);
         systemMarkets.get(demandTrade.getSystem()).getPlanetMarkets().get(demandTrade.getPlanet()).addDemandTrade(tradePair);
     }
+    private static void calculatePrices(){
+        Set<String> allCommodityIds = new HashSet<>();
+        Map<String, Integer> supply = new HashMap<>();
+        Map<String, Integer> demand = new HashMap<>();
+        Map<String, Long> stock = new HashMap<>();
+        for(Map.Entry<StarSystemAPI, SystemMarket> sm : systemMarkets.entrySet()){
+            for(Map.Entry<PlanetAPI, PlanetMarket> pm : sm.getValue().getPlanetMarkets().entrySet()){
+                PlanetMarket planetMarket = pm.getValue();
+                allCommodityIds.addAll(planetMarket.getCommodityIds());
+                for (String commodityId : planetMarket.getCommodityIds()) {
+                    supply.merge(commodityId, planetMarket.getSupplyRaw(commodityId), Integer::sum);
+                    demand.merge(commodityId, planetMarket.getDemandRaw(commodityId), Integer::sum);
+                    stock.merge(commodityId, planetMarket.getStock(commodityId), Long::sum);
+                }
+            }
+        }
+        for(String commodityId : allCommodityIds){
+            float targetStock = demand.getOrDefault(commodityId, 0) * 3f;
+
+            float stockRatio = stock.getOrDefault(commodityId, 0L) / Math.max(targetStock, 1f);
+            float stockPressure = 1f - clamp(stockRatio, 0f, 1f);
+
+            float shortage = demand.getOrDefault(commodityId, 0) - supply.getOrDefault(commodityId, 0);
+            float demandPressure = shortage / Math.max(demand.getOrDefault(commodityId, 0), 1f);
+            demandPressure = clamp(demandPressure, -1f, 1f);
+
+            float pressure = demandPressure * 0.6f + stockPressure * 0.4f;
+            pressure = clamp(pressure, -1f, 1f);
+
+            float smooth = pressure * pressure * (3f - 2f * Math.abs(pressure));
+            smooth *= Math.signum(pressure);
+
+            float multiplier;
+
+            if (smooth >= 0f) {
+                multiplier = 1f + smooth * 5f;
+            } else {
+                multiplier = 1f + smooth * 0.9f;
+            }
+
+            globalPrices.put(commodityId, Global.getSettings().getCommoditySpec(commodityId).getBasePrice() * multiplier);
+        }
+        for(Map.Entry<StarSystemAPI, SystemMarket> sm : systemMarkets.entrySet()){
+            for(Map.Entry<PlanetAPI, PlanetMarket> pm : sm.getValue().getPlanetMarkets().entrySet()){
+                pm.getValue().updatePrices();
+            }
+        }
+    }
     private static void collateData(){
         allData.clear();
         globalData.clear();
         factionGlobalData.clear();
         for (Map.Entry<StarSystemAPI, SystemMarket> smP : systemMarkets.entrySet()){
             for (Map.Entry<PlanetAPI, PlanetMarket> pmP : smP.getValue().getPlanetMarkets().entrySet()){
-                allData.put(pmP.getValue().getMarket(), new SystemEconomyData(getPlanetMarket(pmP.getValue().getMarket())));
+                allData.put(pmP.getValue().getMarket(), new PlanteEconomyData(getPlanetMarket(pmP.getValue().getMarket())));
+                for(String commodityId : pmP.getValue().getCommodityIds()){
+                    GDP.merge(commodityId, pmP.getValue().getSupplyRaw(commodityId) * globalPrices.getOrDefault(commodityId,0f), Float::sum);
+                }
                 for(TradePair trade : pmP.getValue().getSupplyTrade()){
                     globalData.merge(trade.getItemId(),trade.getItemNum(),Integer::sum);
                     factionGlobalData.computeIfAbsent(trade.getItemId(), k -> new HashMap<>()).merge(trade.getFromFaction(), trade.getItemNum(), Integer::sum);
+                    GDT.merge(trade.getItemId(), trade.getItemNum() * globalPrices.getOrDefault(trade.getItemId(),0f), Float::sum);
                 }
             }
+        }
+        for(Map.Entry<String, Float> sf : GDP.entrySet()){
+            EDP.put(sf.getKey(), sf.getValue() - GDT.getOrDefault(sf.getKey(), 0f));
         }
     }
     @Override
@@ -152,6 +212,7 @@ public class SystemEconomyService implements EconomyTickListener {
         for (Map.Entry<StarSystemAPI, SystemMarket> systemMarketPair : systemMarkets.entrySet()) {
             systemMarketPair.getValue().updateTrade();
         }
+        calculatePrices();
         collateData();
     }
     public static PlanetMarket getPlanetMarket(MarketAPI market) {
@@ -161,7 +222,7 @@ public class SystemEconomyService implements EconomyTickListener {
         if (systemMarkets.get(market.getStarSystem()).getPlanetMarkets() == null) return null;
         return systemMarkets.get(market.getStarSystem()).getPlanetMarkets().get(market.getPlanetEntity());
     }
-    public static SystemEconomyData getSystemEconomyData(MarketAPI market){
+    public static PlanteEconomyData getSystemEconomyData(MarketAPI market){
         return allData.get(market);
     }
     public static Map<StarSystemAPI, SystemMarket> getSystemMarkets() {
@@ -173,16 +234,37 @@ public class SystemEconomyService implements EconomyTickListener {
     public static int getFactionGlobalData(String commodityId,FactionAPI faction) {
         return factionGlobalData.getOrDefault(commodityId, Collections.emptyMap()).getOrDefault(faction,0);
     }
+    public static float getGlobalPrice(String commodityId) {
+        return globalPrices.getOrDefault(commodityId, 0f);
+    }
+    public static Float getGDP(String commodityId) {
+        return GDP.getOrDefault(commodityId, 0f);
+    }
+    public static Float getGDT(String commodityId) {
+        return GDT.getOrDefault(commodityId, 0f);
+    }
+    public static Float getEDP(String commodityId) {
+        return EDP.getOrDefault(commodityId, 0f);
+    }
     public static String formatNumberString(int n) {
         if (n >= 1E8) return String.format("%.1fB", n / 1E9f);
         if (n >= 1E5) return String.format("%.1fM", n / 1E6f);
         if (n > 1E2)     return String.format("%.1fK", n / 1E3f);
-        return String.valueOf(n);
+        return  String.format("%.1f", (float) n);
+    }
+    public static String formatNumberString(float n) {
+        if (n >= 1E8) return String.format("%.2fB", n / 1E9f);
+        if (n >= 1E5) return String.format("%.2fM", n / 1E6f);
+        if (n > 1E2)     return String.format("%.2fK", n / 1E3f);
+        return String.format("%.2f", n);
     }
     public static int formatNumberIntIcon(int n) {
         if (n >= 1E9) return (int) Math.ceil(n / 1E9f);
         if (n >= 1E6) return (int) Math.ceil(n / 1E6f);
         if (n > 1E3)     return (int) Math.ceil(n / 1E3f);
         return n;
+    }
+    public static float clamp(float value, float min, float max) {
+        return Math.max(min, Math.min(max, value));
     }
 }

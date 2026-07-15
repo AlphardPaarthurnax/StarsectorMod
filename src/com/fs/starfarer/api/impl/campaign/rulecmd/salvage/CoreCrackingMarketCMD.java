@@ -10,17 +10,17 @@ import com.fs.starfarer.api.impl.campaign.rulecmd.AddRemoveCommodity;
 import com.fs.starfarer.api.ui.LabelAPI;
 import com.fs.starfarer.api.ui.TooltipMakerAPI;
 import com.fs.starfarer.api.util.Misc;
-import data.scripts.CoreCrackingModPlugin;
-import data.scripts.services.CoreCrackingMarketServices;
-import data.scripts.services.RingWorldServices;
-import data.scripts.animation.PlanetDestructionAnimationScript;
+import com.github.alphardpaarthurnax.script.CoreCrackingModPlugin;
+import com.github.alphardpaarthurnax.script.services.CoreCrackingMarketServices;
+import com.github.alphardpaarthurnax.script.services.RingWorldServices;
+import com.github.alphardpaarthurnax.script.animation.PlanetDestructionAnimationScript;
 
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static data.scripts.data.DialogData.*;
+import static com.github.alphardpaarthurnax.script.data.DialogData.*;
 
 public class CoreCrackingMarketCMD extends MarketCMD {
 

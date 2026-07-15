@@ -1,4 +1,4 @@
-package data.scripts.utils;
+package com.github.alphardpaarthurnax.script.utils;
 
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.SectorEntityToken;
