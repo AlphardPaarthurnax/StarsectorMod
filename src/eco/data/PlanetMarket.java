@@ -8,7 +8,9 @@ import com.fs.starfarer.api.campaign.econ.CommodityOnMarketAPI;
 import com.fs.starfarer.api.campaign.econ.Industry;
 import com.fs.starfarer.api.campaign.econ.MarketAPI;
 import com.fs.starfarer.api.campaign.econ.MutableCommodityQuantity;
+import com.fs.starfarer.api.combat.MutableStat;
 import eco.SystemEconomyService;
+import eco.mixin.BaseIndustryAccessor;
 
 import java.util.*;
 
@@ -36,6 +38,9 @@ public class PlanetMarket{
     // 生产/进口 订单
     private List<TradePair> supplyTrade = new ArrayList<>();
     private List<TradePair> demandTrade = new ArrayList<>();
+    // 送回 Industry 的修正值
+    Map<Industry,Map<String, MutableCommodityQuantity>> allSupplyS = new HashMap<>();
+    Map<Industry,Map<String, MutableCommodityQuantity>> allDemandS = new HashMap<>();
     public PlanetMarket(StarSystemAPI system, PlanetAPI planet, MarketAPI market, FactionAPI faction){
         this.system = system;
         this.planet = planet;
@@ -54,12 +59,28 @@ public class PlanetMarket{
 
         float peopleScale = getPeopleScale(market.getSize());
 
+        Map<Industry,List<MutableCommodityQuantity>> allSupply = new HashMap<>();
+        Map<Industry,List<MutableCommodityQuantity>> allDemand = new HashMap<>();
+
+        for (Industry ind : market.getIndustries()) {
+            for (MutableCommodityQuantity mcq : ((BaseIndustryAccessor)ind).getSupplySource().values()) {
+                if (mcq.getQuantity().getModifiedValue() > 0) {
+                    allSupply.computeIfAbsent(ind, k -> new ArrayList<>()).add(mcq);
+                }
+            }
+            for (MutableCommodityQuantity mcq : ((BaseIndustryAccessor)ind).getDemandSource().values()) {
+                if (mcq.getQuantity().getModifiedValue() > 0) {
+                    allDemand.computeIfAbsent(ind, k -> new ArrayList<>()).add(mcq);
+                }
+            }
+        }
+
         if(stock.isEmpty()){
             for (Industry ind : market.getIndustries()) {
-                for (MutableCommodityQuantity supplyMCQ : ind.getAllSupply()) {
+                for (MutableCommodityQuantity supplyMCQ : allSupply.getOrDefault(ind, Collections.emptyList())) {
                     stock.merge(supplyMCQ.getCommodityId(), (long) (supplyMCQ.getQuantity().getModifiedInt() * peopleScale), Long::sum);
                 }
-                for (MutableCommodityQuantity demandMCQ : ind.getAllDemand()) {
+                for (MutableCommodityQuantity demandMCQ : allDemand.getOrDefault(ind, Collections.emptyList())) {
                     stock.merge(demandMCQ.getCommodityId(), (long) (demandMCQ.getQuantity().getModifiedInt() * peopleScale), Long::sum);
                 }
             }
@@ -70,7 +91,7 @@ public class PlanetMarket{
         Map<String, Float> ratio = new HashMap<>();
 
         for (Industry ind : market.getIndustries()) {
-            for (MutableCommodityQuantity demandMCQ : ind.getAllDemand()) {
+            for (MutableCommodityQuantity demandMCQ : allDemand.getOrDefault(ind, Collections.emptyList())) {
                 demandPre.merge(demandMCQ.getCommodityId(), (int) Math.floor(demandMCQ.getQuantity().getModifiedInt() * peopleScale), Integer::sum);
             }
         }
@@ -81,23 +102,55 @@ public class PlanetMarket{
 
         for (Industry ind : market.getIndustries()) {
             float industryRatio = 1f;
-            for (MutableCommodityQuantity demandMCQ : ind.getAllDemand()) {
+            for (MutableCommodityQuantity demandMCQ : allDemand.getOrDefault(ind, Collections.emptyList())) {
                 industryRatio = Math.min(industryRatio, ratio.get(demandMCQ.getCommodityId()));
             }
             industryRatio = Math.max(0.1f, industryRatio);
 
-            for (MutableCommodityQuantity supplyMCQ : ind.getAllSupply()) {
+            for (MutableCommodityQuantity supplyMCQ : allSupply.getOrDefault(ind, Collections.emptyList())) {
                 String commodityId = supplyMCQ.getCommodityId();
                 int supplyR = (int) Math.floor(supplyMCQ.getQuantity().getModifiedInt() * peopleScale * industryRatio);
+
+                MutableCommodityQuantity newSupplyMCQ = new MutableCommodityQuantity(commodityId);
+                newSupplyMCQ.getQuantity().setBaseValue(supplyMCQ.getQuantity().getBaseValue() * peopleScale * industryRatio);
+                for (Map.Entry<String, MutableStat.StatMod> e : supplyMCQ.getQuantity().getFlatMods().entrySet()) {
+                    MutableStat.StatMod m = e.getValue();
+                    newSupplyMCQ.getQuantity().modifyFlat(e.getKey(), m.value * peopleScale * industryRatio, m.desc);
+                }
+                for (Map.Entry<String, MutableStat.StatMod> e : supplyMCQ.getQuantity().getMultMods().entrySet()) {
+                    MutableStat.StatMod m = e.getValue();
+                    newSupplyMCQ.getQuantity().modifyMult(e.getKey(), m.value, m.desc);
+                }
+                for (Map.Entry<String, MutableStat.StatMod> e : supplyMCQ.getQuantity().getPercentMods().entrySet()) {
+                    MutableStat.StatMod m = e.getValue();
+                    newSupplyMCQ.getQuantity().modifyPercent(e.getKey(), m.value, m.desc);
+                }
+                allSupplyS.computeIfAbsent(ind, k -> new HashMap<>()).put(supplyMCQ.getCommodityId(), newSupplyMCQ);
 
                 stock.merge(commodityId, (long) supplyR, Long::sum);
                 supplyRaw.merge(commodityId, supplyR, Integer::sum);
                 demandRaw.merge(commodityId, 0, Integer::sum);
                 supplyFactory.computeIfAbsent(commodityId, k -> new LinkedHashMap<>()).put(ind, supplyR);
             }
-            for (MutableCommodityQuantity demandMCQ : ind.getAllDemand()) {
+            for (MutableCommodityQuantity demandMCQ : allDemand.getOrDefault(ind, Collections.emptyList())) {
                 String commodityId = demandMCQ.getCommodityId();
                 int demandR = (int) Math.floor(demandMCQ.getQuantity().getModifiedInt() * peopleScale * industryRatio);
+
+                MutableCommodityQuantity newDemandMCQ = new MutableCommodityQuantity(commodityId);
+                newDemandMCQ.getQuantity().setBaseValue(demandMCQ.getQuantity().getBaseValue() * peopleScale * industryRatio);
+                for (Map.Entry<String, MutableStat.StatMod> e : demandMCQ.getQuantity().getFlatMods().entrySet()) {
+                    MutableStat.StatMod m = e.getValue();
+                    newDemandMCQ.getQuantity().modifyFlat(e.getKey(), m.value * peopleScale * industryRatio, m.desc);
+                }
+                for (Map.Entry<String, MutableStat.StatMod> e : demandMCQ.getQuantity().getMultMods().entrySet()) {
+                    MutableStat.StatMod m = e.getValue();
+                    newDemandMCQ.getQuantity().modifyMult(e.getKey(), m.value, m.desc);
+                }
+                for (Map.Entry<String, MutableStat.StatMod> e : demandMCQ.getQuantity().getPercentMods().entrySet()) {
+                    MutableStat.StatMod m = e.getValue();
+                    newDemandMCQ.getQuantity().modifyPercent(e.getKey(), m.value, m.desc);
+                }
+                allDemandS.computeIfAbsent(ind, k -> new HashMap<>()).put(demandMCQ.getCommodityId(), newDemandMCQ);
 
                 stock.merge(demandMCQ.getCommodityId(), (long) -demandR, Long::sum);
                 supplyRaw.merge(commodityId, 0, Integer::sum);
@@ -186,7 +239,16 @@ public class PlanetMarket{
     public long getStock(String commodityId){
         return stock.getOrDefault(commodityId, 0L);
     }
+    public void addStock(String commodityId, long num){
+        stock.merge(commodityId,num,Long::sum);
+    }
     public float getPrice(String commodityId) {
         return prices.getOrDefault(commodityId, 0f);
+    }
+    public Map<String, MutableCommodityQuantity> getAllSupply(Industry industry) {
+        return allSupplyS.get(industry);
+    }
+    public Map<String, MutableCommodityQuantity> getAllDemand(Industry industry) {
+        return allDemandS.get(industry);
     }
 }

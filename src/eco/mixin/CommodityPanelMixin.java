@@ -38,7 +38,7 @@ import java.util.*;
  * 4. 点击行为：点击某行打开原版 CommodityDetailDialogV2（市场份额弹窗）
  * 5. 行高预计算：根据图标栏内容预估所需行高，避免重复设大小
  */
-@Mixin(value = com.fs.starfarer.campaign.ui.marketinfo.CommodityPanel.class)
+@Mixin(CommodityPanel.class)
 public abstract class CommodityPanelMixin extends voidsuper implements U, oo0O.o {
     public CommodityPanelMixin(String s) {
         super(s);
