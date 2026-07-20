@@ -5,6 +5,7 @@ import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.SectorAPI;
 import com.fs.starfarer.api.impl.MusicPlayerPluginImpl;
 import eco.*;
+import eco.neo.EconomyService;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import tests.NewSolar;
@@ -46,5 +47,7 @@ public class CoreCrackingModPlugin extends BaseModPlugin {
         if (sector == null) return;
 
         sector.getListenerManager().addListener(new SystemEconomyService());
+        sector.getListenerManager().addListener(new EconomyService());
+
     }
 }

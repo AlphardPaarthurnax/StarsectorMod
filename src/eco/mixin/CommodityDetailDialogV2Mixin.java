@@ -1,4 +1,4 @@
-/*
+package eco.mixin;/*
 package eco;
 
 import com.fs.starfarer.api.campaign.econ.CommodityOnMarketAPI;
