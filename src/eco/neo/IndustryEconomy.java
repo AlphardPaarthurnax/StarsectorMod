@@ -17,7 +17,8 @@ public class IndustryEconomy {
     private Set<String> commodityIds = new HashSet<>();
     private Set<String> shortages = new HashSet<>();
     private Set<String> overloadShortages = new HashSet<>();
-    private int profit = 0;
+    private float profit = 0f;
+    private float expectedProfit = 0f;
     private boolean overload = false;
     public Industry getIndustry(){
         return industry;
@@ -58,9 +59,10 @@ public class IndustryEconomy {
     public Set<String> getOverloadShortages() {
         return overloadShortages;
     }
-    public int getProfit() {
+    public float getProfit() {
         return profit;
     }
+    public float getExpectedProfit() { return expectedProfit; }
     public boolean isOverload() {
         return overload;
     }
@@ -195,7 +197,20 @@ public class IndustryEconomy {
             modDemand.put(demandMCQ.getCommodityId(), newDemandMCQ);
         }
     }
-    public void updateProfit(){
-        profit = 0;
+    public void updateProfit(Map<String, Float> prices) {
+        float expectedP = 0;
+        float actualP = 0;
+        for (String cid : commodityIds) {
+            float price = prices.getOrDefault(cid, 0f);
+            Map<String, Map<String, Integer>> ref = getReferenceSupplyDemand();
+            expectedP += ref.get("s").getOrDefault(cid, 0) * price
+                    - ref.get("d").getOrDefault(cid, 0) * price;
+            actualP   += getAllSupply().getOrDefault(cid, 0) * price
+                    - getAllDemand().getOrDefault(cid, 0) * price;
+        }
+        this.expectedProfit = expectedP;
+        this.profit = actualP;
     }
+
+    public float getPeopleScale() { return peopleScale; }
 }

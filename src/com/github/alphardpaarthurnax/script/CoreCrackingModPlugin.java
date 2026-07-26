@@ -6,6 +6,7 @@ import com.fs.starfarer.api.campaign.SectorAPI;
 import com.fs.starfarer.api.impl.MusicPlayerPluginImpl;
 import eco.*;
 import eco.neo.EconomyService;
+import eco.neo.trade.TradeConfig;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import tests.NewSolar;
@@ -15,6 +16,7 @@ import java.util.Set;
 
 public class CoreCrackingModPlugin extends BaseModPlugin {
     public static Set<String> blacklistIds = new HashSet<>();
+    public static final String MOD_ID = "CoreCracking";
 
     @Override
     public void onApplicationLoad() throws Exception {
@@ -34,6 +36,8 @@ public class CoreCrackingModPlugin extends BaseModPlugin {
                     MusicPlayerPluginImpl.MUSIC_SET_MEM_KEY, "new_solar_system");
         }
         registerEconomy();
+
+        TradeConfig.load();
     }
 
     @Override
@@ -46,7 +50,7 @@ public class CoreCrackingModPlugin extends BaseModPlugin {
         SectorAPI sector = Global.getSector();
         if (sector == null) return;
 
-        sector.getListenerManager().addListener(new SystemEconomyService());
+        //sector.getListenerManager().addListener(new SystemEconomyService());
         sector.getListenerManager().addListener(new EconomyService());
 
     }

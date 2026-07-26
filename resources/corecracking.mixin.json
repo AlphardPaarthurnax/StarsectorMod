@@ -4,10 +4,6 @@
   "package": "eco.mixin",
   "compatibilityLevel": "JAVA_11",
   "mixins": [
-    "BaseIndustryAccessor",
-    "BaseIndustryMixin",
-    "CommodityOnMarketMixin",
-    "CommodityPanelMixin",
-    "LocalResourcesSubmarketPluginMixin"
+    "BaseIndustryAccessor"
   ]
 }
