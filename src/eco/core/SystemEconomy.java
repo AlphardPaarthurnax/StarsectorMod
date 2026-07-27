@@ -1,14 +1,14 @@
-package eco.neo;
+package eco.core;
 
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.FactionAPI;
-import com.fs.starfarer.api.campaign.PlanetAPI;
 import com.fs.starfarer.api.campaign.StarSystemAPI;
 import com.fs.starfarer.api.campaign.econ.MarketAPI;
-import com.fs.starfarer.api.util.Misc;
-import eco.neo.trade.*;
+import eco.trade.*;
 
 import java.util.*;
+
+import static eco.EconomyService.computePriceMultiplier;
 
 public class SystemEconomy {
     private final StarSystemAPI system;
@@ -19,6 +19,7 @@ public class SystemEconomy {
     private Map<String, List<TradeOffer>> supply = new HashMap<>();
     private Map<String, List<TradeOffer>> demand = new HashMap<>();
     private Map<FactionAPI, Float> factionProfits = new HashMap<>();
+    private Map<FactionAPI, Profit> factionProfitBreakdowns = new HashMap<>();
     public StarSystemAPI getSystem() { return system; }
     public Map<MarketAPI, PlanetEconomy> getAllPlanetEconomys() { return planetEconomys; }
     public PlanetEconomy getPlanetEconomy(MarketAPI m) { return planetEconomys.get(m); }
@@ -39,6 +40,10 @@ public class SystemEconomy {
     }
     public Map<FactionAPI, Float> getFactionProfits() {
         return factionProfits;
+    }
+    public Map<FactionAPI, Profit> getFactionProfitBreakdowns() {
+        if (factionProfitBreakdowns == null) factionProfitBreakdowns = new HashMap<>();
+        return factionProfitBreakdowns;
     }
 
     public SystemEconomy(StarSystemAPI system){
@@ -133,15 +138,21 @@ public class SystemEconomy {
                 st += pe.getAllStock().getOrDefault(cid, 0L);
             }
 
-            float mult = PriceCalculator.computePriceMultiplier(s, d, st);
+            float mult = computePriceMultiplier(s, d, st);
             systemPrices.put(cid, gPrice * mult);
         }
 
         factionProfits.clear();
+        getFactionProfitBreakdowns().clear();
         for (PlanetEconomy pe : planetEconomys.values()) {
             pe.updatePlanetPrices(systemPrices);
             pe.updatePlanetProfit();
-            factionProfits.merge(pe.getMarket().getFaction(), pe.getPlanetProfit(), Float::sum);
+            FactionAPI faction = pe.getMarket().getFaction();
+            getFactionProfitBreakdowns().computeIfAbsent(faction, key -> new Profit())
+                    .add(pe.getProfit());
+        }
+        for (Map.Entry<FactionAPI, Profit> entry : getFactionProfitBreakdowns().entrySet()) {
+            factionProfits.put(entry.getKey(), entry.getValue().getNetProfit());
         }
     }
 }

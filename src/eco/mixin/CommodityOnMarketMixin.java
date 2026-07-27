@@ -1,10 +1,9 @@
 package eco.mixin;
 
-import com.fs.starfarer.api.combat.StatBonus;
 import com.fs.starfarer.campaign.econ.CommodityOnMarket;
 import com.fs.starfarer.campaign.econ.Market;
 import eco.SystemEconomyService;
-import eco.data.PlanetMarket;
+import eco.core.PlanetMarket;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;

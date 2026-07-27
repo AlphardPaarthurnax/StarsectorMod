@@ -1,4 +1,4 @@
-package eco.neo;
+package eco.core;
 
 import com.fs.starfarer.api.campaign.econ.Industry;
 import com.fs.starfarer.api.campaign.econ.MutableCommodityQuantity;
@@ -6,6 +6,9 @@ import com.fs.starfarer.api.combat.MutableStat;
 import eco.mixin.BaseIndustryAccessor;
 
 import java.util.*;
+
+import static eco.EconomyService.scaleMutableCommodityQuantity;
+import static eco.EconomyService.scaleMutableStat;
 
 public class IndustryEconomy {
     private final Industry industry;
@@ -19,6 +22,10 @@ public class IndustryEconomy {
     private Set<String> overloadShortages = new HashSet<>();
     private float profit = 0f;
     private float expectedProfit = 0f;
+    private float income = 0f;
+    private float upkeep = 0f;
+    private MutableStat modIncome = new MutableStat(0);
+    private MutableStat modUpkeep = new MutableStat(0);
     private boolean overload = false;
     public Industry getIndustry(){
         return industry;
@@ -63,6 +70,10 @@ public class IndustryEconomy {
         return profit;
     }
     public float getExpectedProfit() { return expectedProfit; }
+    public float getIncome() { return income; }
+    public float getUpkeep() { return upkeep; }
+    public MutableStat getModIncome() { return modIncome; }
+    public MutableStat getModUpkeep() { return modUpkeep; }
     public boolean isOverload() {
         return overload;
     }
@@ -159,58 +170,26 @@ public class IndustryEconomy {
         for(Map.Entry<String, MutableCommodityQuantity> supplySM : sourceSupply.entrySet()){
             supply.merge(supplySM.getKey(), (int) (supplySM.getValue().getQuantity().getModifiedInt() * peopleScale * efficiency), Integer::sum);
 
-            MutableCommodityQuantity supplyMCQ = supplySM.getValue();
-            MutableCommodityQuantity newSupplyMCQ = new MutableCommodityQuantity(supplyMCQ.getCommodityId());
-            newSupplyMCQ.getQuantity().setBaseValue(supplyMCQ.getQuantity().getBaseValue() * peopleScale * efficiency);
-            for (Map.Entry<String, MutableStat.StatMod> e : supplyMCQ.getQuantity().getFlatMods().entrySet()) {
-                MutableStat.StatMod m = e.getValue();
-                newSupplyMCQ.getQuantity().modifyFlat(e.getKey(), m.value * peopleScale * efficiency, m.desc);
-            }
-            for (Map.Entry<String, MutableStat.StatMod> e : supplyMCQ.getQuantity().getMultMods().entrySet()) {
-                MutableStat.StatMod m = e.getValue();
-                newSupplyMCQ.getQuantity().modifyMult(e.getKey(), m.value, m.desc);
-            }
-            for (Map.Entry<String, MutableStat.StatMod> e : supplyMCQ.getQuantity().getPercentMods().entrySet()) {
-                MutableStat.StatMod m = e.getValue();
-                newSupplyMCQ.getQuantity().modifyPercent(e.getKey(), m.value, m.desc);
-            }
-            modSupply.put(supplyMCQ.getCommodityId(), newSupplyMCQ);
+            MutableCommodityQuantity newSupplyMCQ = scaleMutableCommodityQuantity(supplySM.getValue(),peopleScale * efficiency,peopleScale * efficiency,1f,1f);
+            modSupply.put(supplySM.getValue().getCommodityId(), newSupplyMCQ);
         }
         for(Map.Entry<String, MutableCommodityQuantity> demandSM : sourceDemand.entrySet()){
             demand.merge(demandSM.getKey(), (int) (demandSM.getValue().getQuantity().getModifiedInt() * peopleScale * efficiency), Integer::sum);
 
-            MutableCommodityQuantity demandMCQ = demandSM.getValue();
-            MutableCommodityQuantity newDemandMCQ = new MutableCommodityQuantity(demandMCQ.getCommodityId());
-            newDemandMCQ.getQuantity().setBaseValue(demandMCQ.getQuantity().getBaseValue() * peopleScale * efficiency);
-            for (Map.Entry<String, MutableStat.StatMod> e : demandMCQ.getQuantity().getFlatMods().entrySet()) {
-                MutableStat.StatMod m = e.getValue();
-                newDemandMCQ.getQuantity().modifyFlat(e.getKey(), m.value * peopleScale * efficiency, m.desc);
-            }
-            for (Map.Entry<String, MutableStat.StatMod> e : demandMCQ.getQuantity().getMultMods().entrySet()) {
-                MutableStat.StatMod m = e.getValue();
-                newDemandMCQ.getQuantity().modifyMult(e.getKey(), m.value, m.desc);
-            }
-            for (Map.Entry<String, MutableStat.StatMod> e : demandMCQ.getQuantity().getPercentMods().entrySet()) {
-                MutableStat.StatMod m = e.getValue();
-                newDemandMCQ.getQuantity().modifyPercent(e.getKey(), m.value, m.desc);
-            }
-            modDemand.put(demandMCQ.getCommodityId(), newDemandMCQ);
+            MutableCommodityQuantity newDemandMCQ = scaleMutableCommodityQuantity(demandSM.getValue(),peopleScale * efficiency,peopleScale * efficiency,1f,1f);
+            modDemand.put(demandSM.getValue().getCommodityId(), newDemandMCQ);
         }
     }
-    public void updateProfit(Map<String, Float> prices) {
-        float expectedP = 0;
-        float actualP = 0;
-        for (String cid : commodityIds) {
-            float price = prices.getOrDefault(cid, 0f);
-            Map<String, Map<String, Integer>> ref = getReferenceSupplyDemand();
-            expectedP += ref.get("s").getOrDefault(cid, 0) * price
-                    - ref.get("d").getOrDefault(cid, 0) * price;
-            actualP   += getAllSupply().getOrDefault(cid, 0) * price
-                    - getAllDemand().getOrDefault(cid, 0) * price;
-        }
-        this.expectedProfit = expectedP;
-        this.profit = actualP;
+    public void updateProfit() {
+        this.income = industry.getIncome().getModifiedValue() * peopleScale * efficiency;
+        this.upkeep = industry.getUpkeep().getModifiedValue() * peopleScale * efficiency * 0.75f;
+        this.expectedProfit = (industry.getIncome().getModifiedValue() - industry.getUpkeep().getModifiedValue()) * peopleScale;
+        this.profit = income - upkeep;
+
+        modIncome = scaleMutableStat(industry.getIncome(), peopleScale * efficiency,peopleScale * efficiency,1f,1f);
+        modUpkeep = scaleMutableStat(industry.getUpkeep(), peopleScale * efficiency,peopleScale * efficiency,1f,1f);
     }
+
 
     public float getPeopleScale() { return peopleScale; }
 }

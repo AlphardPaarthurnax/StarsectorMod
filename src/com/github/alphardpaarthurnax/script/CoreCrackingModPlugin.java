@@ -4,9 +4,8 @@ import com.fs.starfarer.api.BaseModPlugin;
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.SectorAPI;
 import com.fs.starfarer.api.impl.MusicPlayerPluginImpl;
-import eco.*;
-import eco.neo.EconomyService;
-import eco.neo.trade.TradeConfig;
+import eco.EconomyConfig;
+import eco.EconomyService;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import tests.NewSolar;
@@ -37,7 +36,7 @@ public class CoreCrackingModPlugin extends BaseModPlugin {
         }
         registerEconomy();
 
-        TradeConfig.load();
+        EconomyConfig.load();
     }
 
     @Override
@@ -51,7 +50,18 @@ public class CoreCrackingModPlugin extends BaseModPlugin {
         if (sector == null) return;
 
         //sector.getListenerManager().addListener(new SystemEconomyService());
-        sector.getListenerManager().addListener(new EconomyService());
+        java.util.List<EconomyService> listeners = sector.getListenerManager().getListeners(EconomyService.class);
+        EconomyService economyService;
+        if (listeners.isEmpty()) {
+            economyService = new EconomyService();
+            sector.getListenerManager().addListener(economyService);
+        } else {
+            economyService = listeners.get(0);
+            for (int i = 1; i < listeners.size(); i++) {
+                sector.getListenerManager().removeListener(listeners.get(i));
+            }
+        }
+        economyService.activate();
 
     }
 }

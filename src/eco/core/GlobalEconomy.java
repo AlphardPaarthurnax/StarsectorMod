@@ -1,13 +1,15 @@
-package eco.neo;
+package eco.core;
 
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.FactionAPI;
 import com.fs.starfarer.api.campaign.StarSystemAPI;
 import com.fs.starfarer.api.campaign.econ.MarketAPI;
-import eco.neo.trade.TradeMatcher;
-import eco.neo.trade.TradeOffer;
+import eco.trade.TradeMatcher;
+import eco.trade.TradeOffer;
 
 import java.util.*;
+
+import static eco.EconomyService.computePriceMultiplier;
 
 public class GlobalEconomy{
     private Map<StarSystemAPI, SystemEconomy> systemEconomys = new HashMap<>();
@@ -15,16 +17,24 @@ public class GlobalEconomy{
     private Map<String, List<TradeOffer>> demand = new HashMap<>();
     private Map<String, Float> globalPrices = new HashMap<>();
     private Map<FactionAPI, Float> factionProfits = new HashMap<>();
+    private Map<FactionAPI, Profit> factionProfitBreakdowns = new HashMap<>();
     public Map<StarSystemAPI, SystemEconomy> getAllSystemEconomys() { return systemEconomys; }
     public SystemEconomy getSystemEconomy(StarSystemAPI s) { return systemEconomys.get(s); }
     public Map<String, List<TradeOffer>> getAllSupply() { return supply; }
     public Map<String, List<TradeOffer>> getAllDemand() { return demand; }
     public Map<String, Float> getGlobalPrices() { return globalPrices; }
     public Map<FactionAPI, Float> getFactionProfits() { return factionProfits; }
+    public Map<FactionAPI, Profit> getFactionProfitBreakdowns() {
+        if (factionProfitBreakdowns == null) factionProfitBreakdowns = new HashMap<>();
+        return factionProfitBreakdowns;
+    }
 
-    private static final GlobalEconomy INSTANCE = new GlobalEconomy();
-    private GlobalEconomy() {}
-    public static GlobalEconomy getInstance() { return INSTANCE; }
+    private static GlobalEconomy instance = new GlobalEconomy();
+    GlobalEconomy() {}
+    public static GlobalEconomy getInstance() { return instance; }
+    static void setInstance(GlobalEconomy globalEconomy) {
+        if (globalEconomy != null) instance = globalEconomy;
+    }
 
     public void updateSource(){
         List<MarketAPI> allMarkets = Global.getSector().getEconomy().getMarketsCopy();
@@ -63,6 +73,7 @@ public class GlobalEconomy{
 
         for (SystemEconomy se : systemEconomys.values()) {
             se.clearSatisfied();
+            se.updateSupplyDemand();
         }
     }
     public void updateSupplyDemand() {
@@ -115,16 +126,21 @@ public class GlobalEconomy{
             int s = allSupply.getOrDefault(cid, 0);
             int d = allDemand.getOrDefault(cid, 0);
             long st = allStock.getOrDefault(cid, 0L);
-            globalPrices.put(cid, base * PriceCalculator.computePriceMultiplier(s, d, st));
+            globalPrices.put(cid, base * computePriceMultiplier(s, d, st));
         }
 
         // 3. 下推到各星系 + 汇总全局势力利润
         factionProfits.clear();
+        getFactionProfitBreakdowns().clear();
         for (SystemEconomy se : systemEconomys.values()) {
             se.updatePrices(globalPrices);
-            for (Map.Entry<FactionAPI, Float> e : se.getFactionProfits().entrySet()) {
-                factionProfits.merge(e.getKey(), e.getValue(), Float::sum);
+            for (Map.Entry<FactionAPI, Profit> e : se.getFactionProfitBreakdowns().entrySet()) {
+                getFactionProfitBreakdowns().computeIfAbsent(e.getKey(), key -> new Profit())
+                        .add(e.getValue());
             }
+        }
+        for (Map.Entry<FactionAPI, Profit> entry : getFactionProfitBreakdowns().entrySet()) {
+            factionProfits.put(entry.getKey(), entry.getValue().getNetProfit());
         }
     }
 }

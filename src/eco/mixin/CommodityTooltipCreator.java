@@ -19,7 +19,7 @@ import com.fs.starfarer.ui.impl.StandardTooltipV2Expandable;
 import com.fs.starfarer.ui.interfacenew;
 import eco.PlanteEconomyData;
 import eco.SystemEconomyService;
-import eco.data.PlanetMarket;
+import eco.core.PlanetMarket;
 
 import java.awt.*;
 import java.lang.reflect.InvocationTargetException;

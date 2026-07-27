@@ -1,6 +1,7 @@
-package eco.neo.trade;
+package eco.trade;
 
 import com.fs.starfarer.api.util.Misc;
+import eco.EconomyConfig;
 
 import java.util.List;
 import java.util.Map;
@@ -28,7 +29,7 @@ public class TradeMatcher {
 
     private static TradeOffer findBestDemand(TradeOffer supply, List<TradeOffer> demands) {
         TradeOffer best = null;
-        List<TradeStrategy> chain = TradeConfig.getChain(supply.getFaction().getId());
+        List<TradeStrategy> chain = EconomyConfig.getTradeChain(supply.getFaction().getId());
         for (TradeOffer demand : demands) {
             if (demand.getItemNum() >= 0) continue;
             if (best == null) {

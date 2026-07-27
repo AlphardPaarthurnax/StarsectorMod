@@ -1,4 +1,4 @@
-package eco.neo;
+package eco;
 
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.FactionAPI;
@@ -7,10 +7,10 @@ import com.fs.starfarer.api.campaign.econ.Industry;
 import com.fs.starfarer.api.campaign.econ.MarketAPI;
 import com.fs.starfarer.api.campaign.econ.MutableCommodityQuantity;
 import com.fs.starfarer.api.combat.MutableStat;
-import eco.neo.trade.TradeConfig;
-import eco.neo.trade.TradeDeal;
-import eco.neo.trade.TradeOffer;
-import eco.neo.trade.TradeStrategy;
+import eco.core.*;
+import eco.trade.TradeDeal;
+import eco.trade.TradeOffer;
+import eco.trade.TradeStrategy;
 
 import java.io.*;
 import java.nio.charset.Charset;
@@ -94,12 +94,20 @@ public class EcoDebugDump {
 
         sb.append("<br><details open><summary><span style=\"color:var(--yellow)\">Trade Strategy Config</span></summary><table>");
         sb.append("<tr><th>faction</th><th>chain</th></tr>");
-        sb.append("<tr><td class=\"commodity\">default</td><td>").append(chainToStr(TradeConfig.getDefaultChain())).append("</td></tr>");
-        for (Map.Entry<String, List<TradeStrategy>> e : TradeConfig.getFactionChains().entrySet()) {
+        sb.append("<tr><td class=\"commodity\">default</td><td>").append(chainToStr(EconomyConfig.getDefaultTradeChain())).append("</td></tr>");
+        for (Map.Entry<String, List<TradeStrategy>> e : EconomyConfig.getFactionTradeChains().entrySet()) {
             sb.append("<tr><td class=\"commodity\">").append(esc(e.getKey())).append("</td>");
             sb.append("<td>").append(chainToStr(e.getValue())).append("</td></tr>");
         }
         sb.append("</table></details>");
+
+        sb.append("<details open><summary><span style=\"color:var(--yellow)\">Economy Profit Config</span></summary>");
+        sb.append("<div class=\"kv\"><span class=\"kv-label\">internalTradeTaxRate:</span> ")
+                .append(String.format("%.2f%%", EconomyConfig.getInternalTradeTaxRate() * 100f)).append("</div>");
+        sb.append("<div class=\"kv\"><span class=\"kv-label\">freightCostPerCargoSpacePerLY:</span> ")
+                .append(String.format("%.2f", EconomyConfig.getFreightCostPerCargoSpacePerLY()))
+                .append(" credits / cargo / LY</div>");
+        sb.append("</details>");
 
         Map<String, Float> gp = ge.getGlobalPrices();
         if (!gp.isEmpty()) {
@@ -115,20 +123,11 @@ public class EcoDebugDump {
             sb.append("</table></details>");
         }
 
-        Map<FactionAPI, Float> geFP = ge.getFactionProfits();
+        Map<FactionAPI, Profit> geFP = ge.getFactionProfitBreakdowns();
         if (!geFP.isEmpty()) {
             sb.append("<br><details open><summary><span style=\"color:var(--yellow)\">Global Faction Profits</span></summary>");
-            sb.append("<table class=\"trade-table\">");
-            sb.append("<tr><th>faction</th><th>profit</th></tr>");
-            List<Map.Entry<FactionAPI, Float>> sorted = new ArrayList<>(geFP.entrySet());
-            sorted.sort((a, b) -> Float.compare(b.getValue(), a.getValue()));
-            for (Map.Entry<FactionAPI, Float> e : sorted) {
-                float v = e.getValue();
-                sb.append("<tr><td>").append(esc(e.getKey().getDisplayName())).append("</td>");
-                sb.append("<td class=\"").append(v >= 0 ? "pos" : "neg").append("\">")
-                        .append(fmtNumFloat(v)).append("</td></tr>");
-            }
-            sb.append("</table></details>");
+            sb.append(dumpFactionProfitTable(geFP));
+            sb.append("</details>");
         }
 
         if (!ge.getAllSupply().isEmpty() || !ge.getAllDemand().isEmpty()) {
@@ -177,20 +176,10 @@ public class EcoDebugDump {
             sb.append("]</div>");
         }
 
-        Map<FactionAPI, Float> seFP = se.getFactionProfits();
+        Map<FactionAPI, Profit> seFP = se.getFactionProfitBreakdowns();
         if (!seFP.isEmpty()) {
             sb.append("<div class=\"section-label\">Faction Profits:</div>");
-            sb.append("<table class=\"trade-table\">");
-            sb.append("<tr><th>faction</th><th>profit</th></tr>");
-            List<Map.Entry<FactionAPI, Float>> sorted = new ArrayList<>(seFP.entrySet());
-            sorted.sort((a, b) -> Float.compare(b.getValue(), a.getValue()));
-            for (Map.Entry<FactionAPI, Float> e : sorted) {
-                float v = e.getValue();
-                sb.append("<tr><td>").append(esc(e.getKey().getDisplayName())).append("</td>");
-                sb.append("<td class=\"").append(v >= 0 ? "pos" : "neg").append("\">")
-                        .append(fmtNumFloat(v)).append("</td></tr>");
-            }
-            sb.append("</table>");
+            sb.append(dumpFactionProfitTable(seFP));
         }
 
         if (!se.getAllSupply().isEmpty()) {
@@ -214,28 +203,33 @@ public class EcoDebugDump {
         String label = pe.getMarketName() + " &mdash; " + pe.getPlanetName() + " (size=" + pe.getMarketSize() + ") &mdash; " + pe.getFactionId();
         sb.append("<details open><summary><span class=\"planet-header\">PlanetEconomy</span>: ").append(esc(label));
         sb.append(" <span class=\"kv-label\">planetProfit:</span>");
-        float pp = pe.getPlanetProfit();
+        float pp = pe.getProfit().getNetProfit();
         sb.append(pp >= 0 ? "<span class=\"pos\">+" + fmtNumFloat(pp) + "</span>"
                 : "<span class=\"neg\">" + fmtNumFloat(pp) + "</span>");
         sb.append("</summary>");
+
+        sb.append("<div class=\"section-label\">Profit Breakdown:</div>");
+        sb.append(dumpProfitBreakdownTable(pe.getProfit()));
 
         Set<String> allIds = new TreeSet<>();
         allIds.addAll(pe.getAllStock().keySet());
         allIds.addAll(pe.getNetSD().keySet());
         allIds.addAll(pe.getAllActualSupply().keySet());
         allIds.addAll(pe.getAllActualDemand().keySet());
+        allIds.addAll(pe.getDomesticDemand().keySet());
         allIds.addAll(pe.getBaseSupply().keySet());
         allIds.addAll(pe.getBaseDemand().keySet());
         allIds.addAll(pe.getAllPrice().keySet());
 
         if (!allIds.isEmpty()) {
             sb.append("<table class=\"data-table\">");
-            sb.append("<tr><th>commodityId</th><th>stock</th><th>netSD</th><th>actualS</th><th>actualD</th><th>baseS</th><th>baseD</th><th>price</th></tr>");
+            sb.append("<tr><th>commodityId</th><th>stock</th><th>netSD</th><th>actualS</th><th>actualD</th><th>domesticD</th><th>baseS</th><th>baseD</th><th>price</th></tr>");
             for (String cid : allIds) {
                 long stock = pe.getAllStock().getOrDefault(cid, 0L);
                 int net = pe.getNetSD().getOrDefault(cid, 0);
                 int as = pe.getAllActualSupply().getOrDefault(cid, 0);
                 int ad = pe.getAllActualDemand().getOrDefault(cid, 0);
+                int domestic = pe.getDomesticDemand().getOrDefault(cid, 0);
                 int bs = pe.getBaseSupply().getOrDefault(cid, 0);
                 int bd = pe.getBaseDemand().getOrDefault(cid, 0);
                 float price = pe.getAllPrice().getOrDefault(cid, 0f);
@@ -248,6 +242,7 @@ public class EcoDebugDump {
                 sb.append("<td class=\"").append(netClass).append("\">").append(netStr).append("</td>");
                 sb.append("<td>").append(as).append("</td>");
                 sb.append("<td>").append(ad).append("</td>");
+                sb.append("<td>").append(domestic).append("</td>");
                 sb.append("<td>").append(bs).append("</td>");
                 sb.append("<td>").append(bd).append("</td>");
                 sb.append("<td>").append(String.format("%.1f", price)).append("</td>");
@@ -330,11 +325,27 @@ public class EcoDebugDump {
                 .append("  eff=").append(String.format("%.0f%%", eff * 100))
                 .append(" <span class=\"bar-wrap\"><span class=\"bar-fill ").append(barColor)
                 .append("\" style=\"width:").append(barPct).append("%\"></span></span>")
-                .append(" profit=").append(fmtNumFloat(ie.getProfit()))
-                .append(" expProfit=").append(fmtNumFloat(ie.getExpectedProfit()))
+                .append(" income=").append(fmtNumFloat(ie.getIncome()))
+                .append(" upkeep=").append(fmtNumFloat(ie.getUpkeep()))
+                .append(" net=").append(fmtNumFloat(ie.getProfit()))
                 .append(" peopleScale=").append(String.format("%.2f", ie.getPeopleScale()))
                 .append(" ").append(tags)
                 .append("</summary>");
+
+        sb.append("<table class=\"data-table\">");
+        sb.append("<tr><th>income</th><th>upkeep</th><th>expectedProfit</th><th>profit</th><th>modIncome</th><th>modUpkeep</th></tr>");
+        sb.append("<tr><td class=\"pos\">").append(fmtNumFloat(ie.getIncome())).append("</td>")
+                .append("<td class=\"neg\">").append(fmtNumFloat(ie.getUpkeep())).append("</td>")
+                .append("<td>").append(fmtNumFloat(ie.getExpectedProfit())).append("</td>")
+                .append("<td class=\"").append(ie.getProfit() >= 0f ? "pos" : "neg").append("\">")
+                .append(fmtNumFloat(ie.getProfit())).append("</td>")
+                .append("<td>").append(fmtNumFloat(ie.getModIncome().getModifiedValue())).append("</td>")
+                .append("<td>").append(fmtNumFloat(ie.getModUpkeep().getModifiedValue())).append("</td></tr></table>");
+
+        sb.append("<div class=\"section-label\">modIncome details:</div>");
+        sb.append(buildStatTable("income", ie.getModIncome()));
+        sb.append("<div class=\"section-label\">modUpkeep details:</div>");
+        sb.append(buildStatTable("upkeep", ie.getModUpkeep()));
 
         Set<String> allIds = new TreeSet<>();
         allIds.addAll(ie.getAllSupply().keySet());
@@ -433,7 +444,7 @@ public class EcoDebugDump {
     private static String dumpTradeDealTable(List<TradeDeal> deals) {
         StringBuilder sb = new StringBuilder();
         sb.append("<table class=\"trade-table\">");
-        sb.append("<tr><th>commodityId</th><th>from</th><th>to</th><th>quantity</th><th>price</th><th>scope</th></tr>");
+        sb.append("<tr><th>commodityId</th><th>from</th><th>to</th><th>quantity</th><th>export price</th><th>cargo/unit</th><th>cargo volume</th><th>distance LY</th><th>freight deducted</th><th>export profit</th><th>import cost</th><th>scope</th></tr>");
         for (TradeDeal d : deals) {
             boolean intra = d.getFromStarSystem() == d.getToStarSystem();
             sb.append("<tr>");
@@ -444,11 +455,100 @@ public class EcoDebugDump {
                     .append(" (").append(esc(d.getToPlanetEconomy().getFactionId())).append(")</td>");
             sb.append("<td class=\"pos\">").append(String.valueOf(d.getItemNum())).append("</td>");
             sb.append("<td>").append(String.format("%.1f", d.getItemPrice())).append("</td>");
+            sb.append("<td>").append(String.format("%.2f", d.getCargoSpacePerUnit())).append("</td>");
+            sb.append("<td>").append(String.format("%.2f", d.getCargoVolume())).append("</td>");
+            sb.append("<td>").append(String.format("%.2f", d.getDistanceLY())).append("</td>");
+            sb.append("<td class=\"neg\">").append(fmtNumFloat(d.getFreightCost())).append("</td>");
+            sb.append("<td class=\"").append(d.getExportProfit() >= 0f ? "pos" : "neg").append("\">")
+                    .append(fmtNumFloat(d.getExportProfit())).append("</td>");
+            sb.append("<td class=\"neg\">").append(fmtNumFloat(d.getImportCost())).append("</td>");
             sb.append("<td class=\"").append(intra ? "trade-intra" : "trade-inter").append("\">")
                     .append(intra ? "INTRA" : "INTER").append("</td>");
             sb.append("</tr>");
         }
         sb.append("</table>");
+        return sb.toString();
+    }
+
+    private static String dumpFactionProfitTable(Map<FactionAPI, Profit> values) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<table class=\"trade-table\">");
+        sb.append("<tr><th>faction</th><th>+ export profit (after freight)</th><th>+ internal tax</th><th>+ income</th><th>- imports</th><th>- upkeep</th><th>net</th></tr>");
+        List<Map.Entry<FactionAPI, Profit>> sorted = new ArrayList<>(values.entrySet());
+        sorted.sort((a, b) -> Float.compare(b.getValue().getNetProfit(), a.getValue().getNetProfit()));
+        for (Map.Entry<FactionAPI, Profit> entry : sorted) {
+            Profit value = entry.getValue();
+            sb.append("<tr><td>").append(esc(entry.getKey().getDisplayName())).append("</td>");
+            appendProfitCells(sb, value);
+            sb.append("</tr>");
+        }
+        sb.append("</table>");
+        return sb.toString();
+    }
+
+    private static String dumpProfitBreakdownTable(Profit value) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<table class=\"trade-table\">");
+        sb.append("<tr><th>+ export profit (after freight)</th><th>+ internal tax</th><th>+ income</th><th>- imports</th><th>- upkeep</th><th>net</th></tr><tr>");
+        appendProfitCells(sb, value);
+        sb.append("</tr></table>");
+        return sb.toString();
+    }
+
+    private static void appendProfitCells(StringBuilder sb, Profit value) {
+        sb.append("<td class=\"").append(value.getExport() >= 0f ? "pos" : "neg").append("\">")
+                .append(fmtNumFloat(value.getExport())).append("</td>");
+        sb.append("<td class=\"pos\">").append(fmtNumFloat(value.getTax())).append("</td>");
+        sb.append("<td class=\"pos\">").append(fmtNumFloat(value.getIncome())).append("</td>");
+        sb.append("<td class=\"neg\">").append(fmtNumFloat(value.getImportCost())).append("</td>");
+        sb.append("<td class=\"neg\">").append(fmtNumFloat(value.getUpkeep())).append("</td>");
+        float net = value.getNetProfit();
+        sb.append("<td class=\"").append(net >= 0f ? "pos" : "neg").append("\">")
+                .append(fmtNumFloat(net)).append("</td>");
+    }
+
+    private static String buildStatTable(String name, MutableStat stat) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<table class=\"mod-table\">");
+        sb.append("<tr><th>stat</th><th>base</th><th>modified</th><th>type</th><th>key</th><th>value</th><th>desc</th></tr>");
+
+        boolean first = true;
+        for (Map.Entry<String, MutableStat.StatMod> entry : stat.getFlatMods().entrySet()) {
+            sb.append(buildStatRow(name, stat, first, "flt", entry.getKey(), entry.getValue()));
+            first = false;
+        }
+        for (Map.Entry<String, MutableStat.StatMod> entry : stat.getPercentMods().entrySet()) {
+            sb.append(buildStatRow(name, stat, first, "pct", entry.getKey(), entry.getValue()));
+            first = false;
+        }
+        for (Map.Entry<String, MutableStat.StatMod> entry : stat.getMultMods().entrySet()) {
+            sb.append(buildStatRow(name, stat, first, "mul", entry.getKey(), entry.getValue()));
+            first = false;
+        }
+        if (first) {
+            sb.append("<tr><td class=\"commodity\">").append(esc(name)).append("</td>")
+                    .append("<td>").append(String.format("%.1f", stat.getBaseValue())).append("</td>")
+                    .append("<td>").append(String.format("%.1f", stat.getModifiedValue())).append("</td>")
+                    .append("<td class=\"zero\" colspan=\"4\">(no modifiers)</td></tr>");
+        }
+        sb.append("</table>");
+        return sb.toString();
+    }
+
+    private static String buildStatRow(String name, MutableStat stat, boolean first, String type,
+                                       String key, MutableStat.StatMod mod) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<tr><td class=\"commodity\">").append(esc(name)).append("</td>");
+        if (first) {
+            sb.append("<td>").append(String.format("%.1f", stat.getBaseValue())).append("</td>")
+                    .append("<td>").append(String.format("%.1f", stat.getModifiedValue())).append("</td>");
+        } else {
+            sb.append("<td class=\"zero\"></td><td class=\"zero\"></td>");
+        }
+        sb.append("<td class=\"mod-type\">").append(type).append("</td>")
+                .append("<td class=\"mod-key\">").append(esc(key)).append("</td>")
+                .append("<td class=\"mod-val\">").append(String.format("%+.2f", mod.value)).append("</td>")
+                .append("<td class=\"mod-desc\">").append(esc(mod.desc != null ? mod.desc : "")).append("</td></tr>");
         return sb.toString();
     }
 

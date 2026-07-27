@@ -1,9 +1,9 @@
-package eco.neo.trade;
+package eco.trade;
 
 import com.fs.starfarer.api.campaign.FactionAPI;
 import com.fs.starfarer.api.campaign.StarSystemAPI;
 import com.fs.starfarer.api.campaign.econ.MarketAPI;
-import eco.neo.PlanetEconomy;
+import eco.core.PlanetEconomy;
 
 public class TradeOffer {
     private PlanetEconomy planetEconomy;

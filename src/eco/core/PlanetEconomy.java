@@ -1,13 +1,16 @@
-package eco.neo;
+package eco.core;
 
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.PlanetAPI;
 import com.fs.starfarer.api.campaign.econ.Industry;
 import com.fs.starfarer.api.campaign.econ.MarketAPI;
-import eco.neo.trade.TradeDeal;
-import eco.neo.trade.TradeOffer;
+import eco.EconomyConfig;
+import eco.trade.TradeDeal;
+import eco.trade.TradeOffer;
 
 import java.util.*;
+
+import static eco.EconomyService.computePriceMultiplier;
 
 public class PlanetEconomy {
     private final PlanetAPI planet;
@@ -47,7 +50,7 @@ public class PlanetEconomy {
         return commodityIds;
     }
 
-    private float planetProfit = 0;
+    private Profit profit = new Profit();
     private Map<String, Integer> actualSupply = new HashMap<>();
     private Map<String, Integer> actualDemand = new HashMap<>();
     private Map<String, TradeOffer> supply = new HashMap<>();
@@ -55,6 +58,7 @@ public class PlanetEconomy {
     private List<TradeDeal> importTrade = new ArrayList<>();
     private List<TradeDeal> exportTrade = new ArrayList<>();
     private Map<String, Integer> netSD = new HashMap<>();
+    private Map<String, Integer> domesticDemand = new HashMap<>();
     private Map<String, Integer> baseSupply = new HashMap<>();
     private Map<String, Integer> baseDemand = new HashMap<>();
     public PlanetEconomy(MarketAPI market){
@@ -111,9 +115,7 @@ public class PlanetEconomy {
         for(Map.Entry<Industry, IndustryEconomy> industryEco : industryEconomys.entrySet()){
             industryEco.getValue().updateEfficiency(effList);
             industryEco.getValue().updateSupplyDemand();
-            if(!industryEco.getValue().isOverload()){
-                updateStock(industryEco.getValue());
-            }
+            updateStock(industryEco.getValue());
         }
         for (IndustryEconomy ie : industryEconomys.values()) {
             commodityIds.addAll(ie.getCommodityIds());
@@ -123,8 +125,10 @@ public class PlanetEconomy {
         for(Map.Entry<String, Integer> supplySI : industryEconomy.getAllSupply().entrySet()){
             stock.merge(supplySI.getKey(),(long) supplySI.getValue(),Long::sum);
         }
-        for(Map.Entry<String, Integer> demandSI : industryEconomy.getAllDemand().entrySet()){
-            stock.merge(demandSI.getKey(),(long) -demandSI.getValue(),Long::sum);
+        if(!industryEconomy.isOverload()){
+            for(Map.Entry<String, Integer> demandSI : industryEconomy.getAllDemand().entrySet()){
+                stock.merge(demandSI.getKey(),(long) -demandSI.getValue(),Long::sum);
+            }
         }
     }
     public void updateSupplyDemand(){
@@ -133,6 +137,7 @@ public class PlanetEconomy {
         demand.clear();
         actualSupply.clear();
         actualDemand.clear();
+        domesticDemand.clear();
         importTrade.clear();
         exportTrade.clear();
 
@@ -157,6 +162,14 @@ public class PlanetEconomy {
                 demand.put(netSDSI.getKey(), new TradeOffer(this, netSDSI.getKey(), netSDSI.getValue(), getPrice(netSDSI.getKey())));
             }
         }
+
+        for (Map.Entry<String, Integer> entry : actualSupply.entrySet()) {
+            String commodityId = entry.getKey();
+            int amount = Math.min(entry.getValue(), actualDemand.getOrDefault(commodityId, 0));
+            if (amount > 0) {
+                domesticDemand.put(commodityId, amount);
+            }
+        }
     }
     public void updateTradeStock() {
         for (TradeDeal d : importTrade) {
@@ -179,18 +192,29 @@ public class PlanetEconomy {
             int s = actualSupply.getOrDefault(cid, 0);
             int d = actualDemand.getOrDefault(cid, 0);
             long st = stock.getOrDefault(cid, 0L);
-            float mult = PriceCalculator.computePriceMultiplier(s, d, st);
+            float mult = computePriceMultiplier(s, d, st);
             prices.put(cid, sysPrice * mult);
         }
 
         for (IndustryEconomy ie : industryEconomys.values()) {
-            ie.updateProfit(prices);
+            ie.updateProfit();
         }
     }
     public void updatePlanetProfit() {
-        planetProfit = 0;
+        getProfit().clear();
+
         for (IndustryEconomy ie : industryEconomys.values()) {
-            planetProfit += ie.getProfit();
+            getProfit().addIncome(ie.getIncome());
+            getProfit().addUpkeep(ie.getUpkeep());
+        }
+        for (TradeDeal deal : exportTrade) {
+            getProfit().addExport(deal.getExportProfit());
+        }
+        for (TradeDeal deal : importTrade) {
+            getProfit().addImportCost(deal.getImportCost());
+        }
+        for(Map.Entry<String, Integer> dd : domesticDemand.entrySet()){
+            getProfit().addTax(dd.getValue() * getPrice(dd.getKey()) * EconomyConfig.getInternalTradeTaxRate());
         }
     }
     private static float getPeopleScale(int size) {
@@ -225,5 +249,9 @@ public class PlanetEconomy {
     }
     public Map<String, Integer> getAllActualSupply() { return actualSupply; }
     public Map<String, Integer> getAllActualDemand() { return actualDemand; }
-    public float getPlanetProfit() { return planetProfit; }
+    public Map<String, Integer> getDomesticDemand() { return domesticDemand; }
+    public Profit getProfit() {
+        if (profit == null) profit = new Profit();
+        return profit;
+    }
 }
