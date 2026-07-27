@@ -1,4 +1,4 @@
-package eco.mixin;
+/*package eco.mixin;
 
 import com.fs.starfarer.campaign.econ.CommodityOnMarket;
 import com.fs.starfarer.campaign.econ.Market;
@@ -47,3 +47,4 @@ public abstract class CommodityOnMarketMixin {
         ci.cancel();
     }
 }
+*/

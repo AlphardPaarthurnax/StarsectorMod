@@ -1,9 +1,10 @@
-package eco;
+package eco.core;
 
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.econ.MutableCommodityQuantity;
 import com.fs.starfarer.api.campaign.listeners.EconomyTickListener;
 import com.fs.starfarer.api.combat.MutableStat;
+import eco.EcoDebugDump;
 import eco.core.GlobalEconomy;
 
 import java.util.Map;

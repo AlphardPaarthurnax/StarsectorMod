@@ -1,4 +1,4 @@
-package eco.mixin;
+/*package eco.mixin;
 
 import com.fs.starfarer.api.campaign.CargoAPI;
 import com.fs.starfarer.api.campaign.CargoStackAPI;
@@ -50,4 +50,4 @@ public class LocalResourcesSubmarketPluginMixin extends BaseSubmarketPlugin {
         }
         ci.cancel();
     }
-}
+}*/

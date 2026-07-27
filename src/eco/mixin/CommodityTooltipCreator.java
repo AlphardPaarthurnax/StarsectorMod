@@ -1,4 +1,4 @@
-package eco.mixin;
+/*package eco.mixin;
 
 import com.fs.starfarer.O0OO;
 import com.fs.starfarer.api.Global;
@@ -225,3 +225,4 @@ public class CommodityTooltipCreator {
         };
     }
 }
+*/

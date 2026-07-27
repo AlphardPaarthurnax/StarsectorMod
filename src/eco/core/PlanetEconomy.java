@@ -10,7 +10,7 @@ import eco.trade.TradeOffer;
 
 import java.util.*;
 
-import static eco.EconomyService.computePriceMultiplier;
+import static eco.core.EconomyService.computePriceMultiplier;
 
 public class PlanetEconomy {
     private final PlanetAPI planet;

@@ -8,7 +8,7 @@ import eco.trade.*;
 
 import java.util.*;
 
-import static eco.EconomyService.computePriceMultiplier;
+import static eco.core.EconomyService.computePriceMultiplier;
 
 public class SystemEconomy {
     private final StarSystemAPI system;

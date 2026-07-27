@@ -1,4 +1,4 @@
-package eco.mixin;
+/*package eco.mixin;
 
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.econ.CommodityOnMarketAPI;
@@ -37,7 +37,7 @@ import java.util.*;
  *    存入 $crack_rowspec 供 ooOoMixin 渲染每行时读取
  * 4. 点击行为：点击某行打开原版 CommodityDetailDialogV2（市场份额弹窗）
  * 5. 行高预计算：根据图标栏内容预估所需行高，避免重复设大小
- */
+
 @Mixin(CommodityPanel.class)
 public abstract class CommodityPanelMixin extends voidsuper implements U, oo0O.o {
     public CommodityPanelMixin(String s) {
@@ -175,3 +175,4 @@ public abstract class CommodityPanelMixin extends voidsuper implements U, oo0O.o
         }
     }
 }
+*/

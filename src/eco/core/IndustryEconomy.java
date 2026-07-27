@@ -7,8 +7,8 @@ import eco.mixin.BaseIndustryAccessor;
 
 import java.util.*;
 
-import static eco.EconomyService.scaleMutableCommodityQuantity;
-import static eco.EconomyService.scaleMutableStat;
+import static eco.core.EconomyService.scaleMutableCommodityQuantity;
+import static eco.core.EconomyService.scaleMutableStat;
 
 public class IndustryEconomy {
     private final Industry industry;
@@ -84,13 +84,13 @@ public class IndustryEconomy {
     protected int getBaseSupply(String commodityId){
         return baseSupply.getOrDefault(commodityId, 0);
     }
-    protected Map<String, Integer> getAllBaseSupply(){
+    public Map<String, Integer> getAllBaseSupply(){
         return baseSupply;
     }
     protected int getBaseDemand(String commodityId){
         return baseDemand.getOrDefault(commodityId, 0);
     }
-    protected Map<String, Integer> getAllBaseDemand(){
+    public Map<String, Integer> getAllBaseDemand(){
         return baseDemand;
     }
 

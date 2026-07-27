@@ -5,7 +5,7 @@ import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.SectorAPI;
 import com.fs.starfarer.api.impl.MusicPlayerPluginImpl;
 import eco.EconomyConfig;
-import eco.EconomyService;
+import eco.core.EconomyService;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import tests.NewSolar;
