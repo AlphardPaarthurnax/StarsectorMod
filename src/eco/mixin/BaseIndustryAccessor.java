@@ -3,6 +3,7 @@ package eco.mixin;
 
 import com.fs.starfarer.api.campaign.econ.Industry;
 import com.fs.starfarer.api.campaign.econ.MutableCommodityQuantity;
+import com.fs.starfarer.api.combat.MutableStat;
 import com.fs.starfarer.api.impl.campaign.econ.impl.BaseIndustry;
 import com.fs.starfarer.api.ui.TooltipMakerAPI;
 import org.spongepowered.asm.mixin.Mixin;
@@ -17,6 +18,10 @@ public interface BaseIndustryAccessor {
     Map<String, MutableCommodityQuantity> getSupplySource();
     @Accessor("demand")
     Map<String, MutableCommodityQuantity> getDemandSource();
+    @Accessor("income")
+    MutableStat getIncomeSource();
+    @Accessor("upkeep")
+    MutableStat getUpkeepSource();
     @Invoker("getDescriptionOverride")
     String invokeGetDescriptionOverride();
     @Invoker("addRightAfterDescriptionSection")

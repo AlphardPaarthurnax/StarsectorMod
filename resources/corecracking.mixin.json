@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_11",
   "mixins": [
     "BaseIndustryAccessor",
+    "neo.BaseIndustryMixin",
     "neo.CommodityOnMarketMixin"
   ]
 }

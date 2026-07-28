@@ -4,6 +4,7 @@ import com.fs.starfarer.api.campaign.econ.Industry;
 import com.fs.starfarer.api.campaign.econ.MutableCommodityQuantity;
 import com.fs.starfarer.api.combat.MutableStat;
 import eco.mixin.BaseIndustryAccessor;
+import eco.mixin.neo.BaseIndustryBridge;
 
 import java.util.*;
 
@@ -179,15 +180,19 @@ public class IndustryEconomy {
             MutableCommodityQuantity newDemandMCQ = scaleMutableCommodityQuantity(demandSM.getValue(),peopleScale * efficiency,peopleScale * efficiency,1f,1f);
             modDemand.put(demandSM.getValue().getCommodityId(), newDemandMCQ);
         }
+
+        if (industry instanceof BaseIndustryBridge) {
+            ((BaseIndustryBridge) industry).coreCracking$modSDUpdate(this);
+        }
     }
     public void updateProfit() {
-        this.income = industry.getIncome().getModifiedValue() * peopleScale * efficiency;
-        this.upkeep = industry.getUpkeep().getModifiedValue() * peopleScale * efficiency * 0.75f;
-        this.expectedProfit = (industry.getIncome().getModifiedValue() - industry.getUpkeep().getModifiedValue()) * peopleScale;
+        this.income = ((BaseIndustryAccessor) industry).getIncomeSource().getModifiedValue() * peopleScale * efficiency;
+        this.upkeep = ((BaseIndustryAccessor) industry).getUpkeepSource().getModifiedValue() * peopleScale * efficiency * 0.75f;
+        this.expectedProfit = (((BaseIndustryAccessor) industry).getIncomeSource().getModifiedValue() - ((BaseIndustryAccessor) industry).getUpkeepSource().getModifiedValue() * 0.75f) * peopleScale;
         this.profit = income - upkeep;
 
-        modIncome = scaleMutableStat(industry.getIncome(), peopleScale * efficiency,peopleScale * efficiency,1f,1f);
-        modUpkeep = scaleMutableStat(industry.getUpkeep(), peopleScale * efficiency,peopleScale * efficiency,1f,1f);
+        modIncome = scaleMutableStat(((BaseIndustryAccessor) industry).getIncomeSource(), peopleScale * efficiency,peopleScale * efficiency,1f,1f);
+        modUpkeep = scaleMutableStat(((BaseIndustryAccessor) industry).getUpkeepSource(), peopleScale * efficiency,peopleScale * efficiency,1f,1f);
     }
 
 
