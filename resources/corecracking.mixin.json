@@ -4,6 +4,7 @@
   "package": "eco.mixin",
   "compatibilityLevel": "JAVA_11",
   "mixins": [
-    "BaseIndustryAccessor"
+    "BaseIndustryAccessor",
+    "neo.CommodityOnMarketMixin"
   ]
 }
