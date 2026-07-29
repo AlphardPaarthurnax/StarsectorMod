@@ -18,10 +18,13 @@ public abstract class BaseIndustryMixin implements BaseIndustryBridge{
 
     @Shadow protected Map<String, MutableCommodityQuantity> supply;
     @Shadow protected Map<String, MutableCommodityQuantity> demand;
+    @Shadow protected MutableStat income;
+    @Shadow protected MutableStat upkeep;
     @Unique
     private transient Map<String, BridgedMutableCommodityQuantity> coreCracking$modSupply = new LinkedHashMap<>();
     @Unique
     private transient Map<String, BridgedMutableCommodityQuantity> coreCracking$modDemand = new LinkedHashMap<>();
+
     @Unique
     private void checkTransientMap(){
         if (coreCracking$modSupply == null) { coreCracking$modSupply = new LinkedHashMap<>(); }
@@ -29,8 +32,12 @@ public abstract class BaseIndustryMixin implements BaseIndustryBridge{
     }
     @Unique
     private transient IndustryEconomy coreCracking$industryEconomy;
+    @Unique
+    private transient BridgedMutableStat coreCracking$modIncome;
+    @Unique
+    private transient BridgedMutableStat coreCracking$modUpkeep;
     @Override
-    public void coreCracking$modSDUpdate(IndustryEconomy industryEconomy) {
+    public void coreCracking$dataUpdate(IndustryEconomy industryEconomy) {
         this.coreCracking$industryEconomy = industryEconomy;
         checkTransientMap();
 
@@ -74,6 +81,20 @@ public abstract class BaseIndustryMixin implements BaseIndustryBridge{
                     return calculated == null ? null : calculated.getQuantity();
                 }));
     }
+    @Unique
+    private BridgedMutableStat coreCracking$getOrCreateIncomeBridge(){
+        if (coreCracking$modIncome == null) coreCracking$modIncome = new BridgedMutableStat(
+                () -> income,
+                () -> coreCracking$industryEconomy == null ? null : coreCracking$industryEconomy.getModIncome());
+        return coreCracking$modIncome;
+    }
+    @Unique
+    private BridgedMutableStat coreCracking$getOrCreateUpkeepBridge(){
+        if (coreCracking$modUpkeep == null) coreCracking$modUpkeep = new BridgedMutableStat(
+                () -> upkeep,
+                () -> coreCracking$industryEconomy == null ? null : coreCracking$industryEconomy.getModUpkeep());
+        return coreCracking$modUpkeep;
+    }
     @Inject(method = "getAllSupply", at = @At("HEAD"), cancellable = true)
     public void injectGetAllSupply(CallbackInfoReturnable<List<MutableCommodityQuantity>> cir){
         checkTransientMap();
@@ -110,10 +131,10 @@ public abstract class BaseIndustryMixin implements BaseIndustryBridge{
     }
     @Inject(method = "getIncome", at = @At("HEAD"), cancellable = true)
     public void injectGetIncome(CallbackInfoReturnable<MutableStat> cir){
-
+        cir.setReturnValue(coreCracking$getOrCreateIncomeBridge());
     }
     @Inject(method = "getUpkeep", at = @At("HEAD"), cancellable = true)
     public void injectGetUpkeep(CallbackInfoReturnable<MutableStat> cir){
-
+        cir.setReturnValue(coreCracking$getOrCreateUpkeepBridge());
     }
 }

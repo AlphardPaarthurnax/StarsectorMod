@@ -182,7 +182,7 @@ public class IndustryEconomy {
         }
 
         if (industry instanceof BaseIndustryBridge) {
-            ((BaseIndustryBridge) industry).coreCracking$modSDUpdate(this);
+            ((BaseIndustryBridge) industry).coreCracking$dataUpdate(this);
         }
     }
     public void updateProfit() {
@@ -192,7 +192,7 @@ public class IndustryEconomy {
         this.profit = income - upkeep;
 
         modIncome = scaleMutableStat(((BaseIndustryAccessor) industry).getIncomeSource(), peopleScale * efficiency,peopleScale * efficiency,1f,1f);
-        modUpkeep = scaleMutableStat(((BaseIndustryAccessor) industry).getUpkeepSource(), peopleScale * efficiency,peopleScale * efficiency,1f,1f);
+        modUpkeep = scaleMutableStat(((BaseIndustryAccessor) industry).getUpkeepSource(), peopleScale * efficiency * 0.75f,peopleScale * efficiency * 0.75f, 1f,1f);
     }
 
 
