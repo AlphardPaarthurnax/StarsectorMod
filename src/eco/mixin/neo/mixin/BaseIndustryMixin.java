@@ -1,20 +1,24 @@
-package eco.mixin.neo;
+package eco.mixin.neo.mixin;
 
 import com.fs.starfarer.api.campaign.econ.MutableCommodityQuantity;
 import com.fs.starfarer.api.combat.MutableStat;
 import com.fs.starfarer.api.impl.campaign.econ.impl.BaseIndustry;
 import eco.core.IndustryEconomy;
+import eco.mixin.neo.BaseIndustryBridge;
+import eco.mixin.neo.BridgedMutableCommodityQuantity;
+import eco.mixin.neo.BridgedMutableStat;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.*;
 
 @Mixin(BaseIndustry.class)
-public abstract class BaseIndustryMixin implements BaseIndustryBridge{
+public abstract class BaseIndustryMixin implements BaseIndustryBridge {
 
     @Shadow protected Map<String, MutableCommodityQuantity> supply;
     @Shadow protected Map<String, MutableCommodityQuantity> demand;

@@ -3,7 +3,7 @@ package eco.core;
 import com.fs.starfarer.api.campaign.econ.Industry;
 import com.fs.starfarer.api.campaign.econ.MutableCommodityQuantity;
 import com.fs.starfarer.api.combat.MutableStat;
-import eco.mixin.BaseIndustryAccessor;
+import eco.mixin.neo.mixin.BaseIndustryAccessor;
 import eco.mixin.neo.BaseIndustryBridge;
 
 import java.util.*;

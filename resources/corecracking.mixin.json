@@ -1,11 +1,12 @@
 {
   "required": true,
   "minVersion": "0.8",
-  "package": "eco.mixin",
+  "package": "eco.mixin.neo.mixin",
   "compatibilityLevel": "JAVA_11",
   "mixins": [
     "BaseIndustryAccessor",
-    "neo.BaseIndustryMixin",
-    "neo.CommodityOnMarketMixin"
+    "BaseIndustryMixin",
+    "CommodityOnMarketMixin",
+    "PopulationAndInfrastructureMixin"
   ]
 }

@@ -1,4 +1,4 @@
-package eco.mixin;
+package eco.mixin.neo.mixin;
 
 
 import com.fs.starfarer.api.campaign.econ.Industry;
