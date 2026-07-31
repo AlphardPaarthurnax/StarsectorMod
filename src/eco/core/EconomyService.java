@@ -8,6 +8,7 @@ import eco.EcoDebugDump;
 import eco.core.GlobalEconomy;
 
 import java.util.Map;
+import java.util.Objects;
 
 public class EconomyService implements EconomyTickListener {
     private GlobalEconomy globalEconomy = new GlobalEconomy();
@@ -36,38 +37,61 @@ public class EconomyService implements EconomyTickListener {
         globalEconomy.updatePrices();
         EcoDebugDump.dump();
     }
-    public static MutableCommodityQuantity scaleMutableCommodityQuantity(MutableCommodityQuantity A, float base, float flat, float mult, float percent){
-        MutableCommodityQuantity MCQ = new MutableCommodityQuantity(A.getCommodityId());
-        MCQ.getQuantity().setBaseValue(A.getQuantity().getBaseValue() * base);
-        for (Map.Entry<String, MutableStat.StatMod> e : A.getQuantity().getFlatMods().entrySet()) {
-            MutableStat.StatMod m = e.getValue();
-            MCQ.getQuantity().modifyFlat(e.getKey(), m.value * flat, m.desc);
+    private static boolean matchMask(String source, String[] mask) {
+        if (mask == null) return false;
+        for (String m : mask) {
+            if (Objects.equals(source, m)) {
+                return true;
+            }
         }
-        for (Map.Entry<String, MutableStat.StatMod> e : A.getQuantity().getMultMods().entrySet()) {
-            MutableStat.StatMod m = e.getValue();
-            MCQ.getQuantity().modifyMult(e.getKey(), m.value * mult, m.desc);
-        }
-        for (Map.Entry<String, MutableStat.StatMod> e : A.getQuantity().getPercentMods().entrySet()) {
-            MutableStat.StatMod m = e.getValue();
-            MCQ.getQuantity().modifyPercent(e.getKey(), m.value * percent, m.desc);
-        }
-        return MCQ;
+        return false;
     }
-    public static MutableStat scaleMutableStat(MutableStat A, float base, float flat, float mult, float percent){
-        MutableStat MS = new MutableStat(A.getBaseValue() * base);
-        for(Map.Entry<String, MutableStat.StatMod> e : A.getFlatMods().entrySet()){
-            MutableStat.StatMod m = e.getValue();
-            MS.modifyFlat(e.getKey(), m.value * flat, m.desc);
+    public static MutableCommodityQuantity copyMaskMCQ(MutableCommodityQuantity A, String... Mask){
+        MutableCommodityQuantity MaskMCQ = new MutableCommodityQuantity(A.getCommodityId());
+        MaskMCQ.getQuantity().setBaseValue(A.getQuantity().getBaseValue());
+
+        for(MutableStat.StatMod s : A.getQuantity().getFlatMods().values()){
+            if (matchMask(s.source, Mask)) {
+                continue;
+            }
+            MaskMCQ.getQuantity().modifyFlat(s.source, s.value, s.desc);
         }
-        for (Map.Entry<String, MutableStat.StatMod> e : A.getMultMods().entrySet()) {
-            MutableStat.StatMod m = e.getValue();
-            MS.modifyMult(e.getKey(), m.value * mult, m.desc);
+        for(MutableStat.StatMod s : A.getQuantity().getMultMods().values()){
+            if (matchMask(s.source, Mask)) {
+                continue;
+            }
+            MaskMCQ.getQuantity().modifyMult(s.source, s.value, s.desc);
         }
-        for (Map.Entry<String, MutableStat.StatMod> e : A.getPercentMods().entrySet()) {
-            MutableStat.StatMod m = e.getValue();
-            MS.modifyPercent(e.getKey(), m.value * percent, m.desc);
+        for(MutableStat.StatMod s : A.getQuantity().getPercentMods().values()){
+            if (matchMask(s.source, Mask)) {
+                continue;
+            }
+            MaskMCQ.getQuantity().modifyPercent(s.source, s.value, s.desc);
         }
-        return MS;
+        return MaskMCQ;
+    }
+    public static MutableStat copyMaskMCQ(MutableStat A, String... Mask){
+        MutableStat MaskMS = new MutableStat(A.base);
+
+        for(MutableStat.StatMod s : A.getFlatMods().values()){
+            if (matchMask(s.source, Mask)) {
+                continue;
+            }
+            MaskMS.modifyFlat(s.source, s.value, s.desc);
+        }
+        for(MutableStat.StatMod s : A.getMultMods().values()){
+            if (matchMask(s.source, Mask)) {
+                continue;
+            }
+            MaskMS.modifyMult(s.source, s.value, s.desc);
+        }
+        for(MutableStat.StatMod s : A.getPercentMods().values()){
+            if (matchMask(s.source, Mask)) {
+                continue;
+            }
+            MaskMS.modifyPercent(s.source, s.value, s.desc);
+        }
+        return MaskMS;
     }
     public static float computePriceMultiplier(int supply, int demand, long stock) {
         float targetStock = demand * 3f;
@@ -83,7 +107,6 @@ public class EconomyService implements EconomyTickListener {
         if (smooth >= 0f) return 1f + smooth * 3f;     // max 4x (+300%)
         else               return 1f + smooth * 0.75f;  // min 0.25x (-75%)
     }
-
     public static float clamp(float value, float min, float max) {
         return Math.max(min, Math.min(max, value));
     }

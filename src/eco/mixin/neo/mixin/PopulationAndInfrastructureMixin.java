@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 public class PopulationAndInfrastructureMixin {
 
     @Redirect(method = "modifyStability", at = @At(value = "INVOKE", target = "Lcom/fs/starfarer/api/impl/campaign/econ/impl/PopulationAndInfrastructure;getIncomeStabilityMult(F)F"))
-    private static float coreCracking$disableIncomeStabilityMultiplier(float stability){
+    private static float redirectIncomeStabilityMultiplier(float stability){
         return 1f;
     }
 }

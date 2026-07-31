@@ -3,6 +3,7 @@ package eco.mixin.neo.mixin;
 import com.fs.starfarer.api.campaign.econ.MutableCommodityQuantity;
 import com.fs.starfarer.api.combat.MutableStat;
 import com.fs.starfarer.api.impl.campaign.econ.impl.BaseIndustry;
+import com.fs.starfarer.api.util.Pair;
 import eco.core.IndustryEconomy;
 import eco.mixin.neo.BaseIndustryBridge;
 import eco.mixin.neo.BridgedMutableCommodityQuantity;
@@ -140,5 +141,17 @@ public abstract class BaseIndustryMixin implements BaseIndustryBridge {
     @Inject(method = "getUpkeep", at = @At("HEAD"), cancellable = true)
     public void injectGetUpkeep(CallbackInfoReturnable<MutableStat> cir){
         cir.setReturnValue(coreCracking$getOrCreateUpkeepBridge());
+    }
+    @Inject(method = "getMaxDeficit", at = @At("HEAD"), cancellable = true)
+    public void injectGetMaxDeficit(CallbackInfoReturnable<Pair<String, Integer>> cir){
+        cir.setReturnValue(new Pair<>(null,0));
+    }
+    @Inject(method = "getAllDeficit()Ljava/util/List;", at = @At("HEAD"), cancellable = true)
+    private void coreCracking$disableAllDeficit(CallbackInfoReturnable<List<Pair<String, Integer>>> cir) {
+        cir.setReturnValue(new ArrayList<>());
+    }
+    @Inject(method = "getAllDeficit([Ljava/lang/String;)Ljava/util/List;", at = @At("HEAD"), cancellable = true)
+    private void coreCracking$disableAllDeficitForCommodities(String[] commodityIds, CallbackInfoReturnable<List<Pair<String, Integer>>> cir) {
+        cir.setReturnValue(new ArrayList<>());
     }
 }

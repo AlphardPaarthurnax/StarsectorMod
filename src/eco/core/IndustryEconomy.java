@@ -8,8 +8,7 @@ import eco.mixin.neo.BaseIndustryBridge;
 
 import java.util.*;
 
-import static eco.core.EconomyService.scaleMutableCommodityQuantity;
-import static eco.core.EconomyService.scaleMutableStat;
+import static eco.core.EconomyService.*;
 
 public class IndustryEconomy {
     private final Industry industry;
@@ -171,13 +170,17 @@ public class IndustryEconomy {
         for(Map.Entry<String, MutableCommodityQuantity> supplySM : sourceSupply.entrySet()){
             supply.merge(supplySM.getKey(), (int) (supplySM.getValue().getQuantity().getModifiedInt() * peopleScale * efficiency), Integer::sum);
 
-            MutableCommodityQuantity newSupplyMCQ = scaleMutableCommodityQuantity(supplySM.getValue(),peopleScale * efficiency,peopleScale * efficiency,1f,1f);
+            MutableCommodityQuantity newSupplyMCQ = copyMaskMCQ(supplySM.getValue(), "cc_econ_population_size", "cc_econ_efficiency");
+            newSupplyMCQ.getQuantity().modifyMult("cc_econ_population_size", peopleScale, "人口规模");
+            newSupplyMCQ.getQuantity().modifyMult("cc_econ_efficiency", efficiency, "生产效率");
             modSupply.put(supplySM.getValue().getCommodityId(), newSupplyMCQ);
         }
         for(Map.Entry<String, MutableCommodityQuantity> demandSM : sourceDemand.entrySet()){
             demand.merge(demandSM.getKey(), (int) (demandSM.getValue().getQuantity().getModifiedInt() * peopleScale * efficiency), Integer::sum);
 
-            MutableCommodityQuantity newDemandMCQ = scaleMutableCommodityQuantity(demandSM.getValue(),peopleScale * efficiency,peopleScale * efficiency,1f,1f);
+            MutableCommodityQuantity newDemandMCQ = copyMaskMCQ(demandSM.getValue(), "cc_econ_population_size", "cc_econ_efficiency");
+            newDemandMCQ.getQuantity().modifyMult("cc_econ_population_size", peopleScale, "人口规模");
+            newDemandMCQ.getQuantity().modifyMult("cc_econ_efficiency", efficiency, "生产效率");
             modDemand.put(demandSM.getValue().getCommodityId(), newDemandMCQ);
         }
 
@@ -191,10 +194,13 @@ public class IndustryEconomy {
         this.expectedProfit = (((BaseIndustryAccessor) industry).getIncomeSource().getModifiedValue() - ((BaseIndustryAccessor) industry).getUpkeepSource().getModifiedValue() * 0.75f) * peopleScale;
         this.profit = income - upkeep;
 
-        modIncome = scaleMutableStat(((BaseIndustryAccessor) industry).getIncomeSource(), peopleScale * efficiency,peopleScale * efficiency,1f,1f);
-        modUpkeep = scaleMutableStat(((BaseIndustryAccessor) industry).getUpkeepSource(), peopleScale * efficiency * 0.75f,peopleScale * efficiency * 0.75f, 1f,1f);
+        modIncome = copyMaskMCQ(((BaseIndustryAccessor) industry).getIncomeSource(), "cc_econ_population_size", "cc_econ_efficiency");
+        modIncome.modifyMult("cc_econ_population_size", peopleScale, "人口规模");
+        modIncome.modifyMult("cc_econ_efficiency", efficiency, "生产效率");
+        modUpkeep = copyMaskMCQ(((BaseIndustryAccessor) industry).getUpkeepSource(), "cc_econ_population_size", "cc_econ_efficiency");
+        modUpkeep.modifyMult("cc_econ_population_size", peopleScale * 0.75f, "人口规模");
+        modUpkeep.modifyMult("cc_econ_efficiency", efficiency, "生产效率");
     }
-
 
     public float getPeopleScale() { return peopleScale; }
 }
