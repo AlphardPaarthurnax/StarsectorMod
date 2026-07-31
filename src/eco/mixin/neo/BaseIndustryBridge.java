@@ -3,5 +3,5 @@ package eco.mixin.neo;
 import eco.core.IndustryEconomy;
 
 public interface BaseIndustryBridge {
-    void coreCracking$dataUpdate(IndustryEconomy industryEconomy);
+    void ECON$dataUpdate(IndustryEconomy industryEconomy);
 }

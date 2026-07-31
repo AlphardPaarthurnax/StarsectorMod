@@ -185,7 +185,7 @@ public class IndustryEconomy {
         }
 
         if (industry instanceof BaseIndustryBridge) {
-            ((BaseIndustryBridge) industry).coreCracking$dataUpdate(this);
+            ((BaseIndustryBridge) industry).ECON$dataUpdate(this);
         }
     }
     public void updateProfit() {
