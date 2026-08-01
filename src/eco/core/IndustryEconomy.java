@@ -17,6 +17,7 @@ public class IndustryEconomy {
     private Map<String, MutableCommodityQuantity> modSupply = new HashMap<>();
     private Map<String, MutableCommodityQuantity> modDemand = new HashMap<>();
     private float efficiency = 1f;
+    private Map<String, Float> demandFulfillment = new HashMap<>();
     private Set<String> commodityIds = new HashSet<>();
     private Set<String> shortages = new HashSet<>();
     private Set<String> overloadShortages = new HashSet<>();
@@ -56,6 +57,9 @@ public class IndustryEconomy {
     }
     public float getEfficiency() {
         return efficiency;
+    }
+    public float getDemandFulfillment(String commodityId) {
+        return demandFulfillment.getOrDefault(commodityId, 1f);
     }
     public Set<String> getCommodityIds() {
         return commodityIds;
@@ -140,6 +144,7 @@ public class IndustryEconomy {
     public void updateEfficiency(Map<String, Float> efficiencyList){
         efficiency = 1.0f;
         overload = false;
+        demandFulfillment.clear();
         commodityIds.clear();
         shortages.clear();
         overloadShortages.clear();
@@ -149,6 +154,8 @@ public class IndustryEconomy {
         for(Map.Entry<String, MutableCommodityQuantity> demandSM : sourceDemand.entrySet()){
             commodityIds.add(demandSM.getKey());
             float tempEff = efficiencyList.getOrDefault(demandSM.getKey(), 0f);
+            float fulfillment = Float.isFinite(tempEff) ? Math.max(0f, Math.min(1f, tempEff)) : 0f;
+            demandFulfillment.put(demandSM.getKey(), fulfillment);
             efficiency = Math.min(efficiency, tempEff);
             if(tempEff < 0.1f){
                 overloadShortages.add(demandSM.getKey());

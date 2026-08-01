@@ -16,6 +16,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.*;
@@ -28,12 +29,12 @@ public abstract class BaseIndustryMixin implements BaseIndustryBridge {
     @Shadow protected MutableStat income;
     @Shadow protected MutableStat upkeep;
     @Shadow protected MarketAPI market;
+    @Shadow public abstract List<Pair<String, Integer>> getAllDeficit(String ... commodityIds);
     @Unique private transient Map<String, BridgedMutableCommodityQuantity> ECON$modSupply = new LinkedHashMap<>();
     @Unique private transient Map<String, BridgedMutableCommodityQuantity> ECON$modDemand = new LinkedHashMap<>();
     @Unique private transient IndustryEconomy ECON$industryEconomy;
     @Unique private transient BridgedMutableStat ECON$modIncome;
     @Unique private transient BridgedMutableStat ECON$modUpkeep;
-    @Unique private boolean ECON$inApply;
     @Unique
     private void checkTransientMap(){
         if (ECON$modSupply == null) { ECON$modSupply = new LinkedHashMap<>(); }
@@ -138,38 +139,52 @@ public abstract class BaseIndustryMixin implements BaseIndustryBridge {
         }
         cir.setReturnValue(ECON$modUpkeep);
     }
-    /** 运行在 apply() 时设置状态*/
-    @Redirect(method = "reapply", at = @At(value = "INVOKE", target = "Lcom/fs/starfarer/api/impl/campaign/econ/impl/BaseIndustry;apply()V"))
-    private void applyInReapply(BaseIndustry industry) {
-        if (industry instanceof PopulationAndInfrastructure) {
-            industry.apply();
-            ECON$inApply = false;
-            return;
+    // ***********
+    // * mod fix *
+    // ***********
+    @Inject(method = "apply", at = @At("RETURN"), cancellable = true)
+    private void injectApply(boolean withIncomeUpdate, CallbackInfo ci){
+        for(MutableCommodityQuantity MCQ : supply.values()){
+            MCQ.getQuantity().unmodify("deficit");
         }
-
-        ECON$inApply = true;
-        try {
-            industry.apply();
-        } finally {
-            ECON$inApply = false;
+        for(MutableCommodityQuantity MCQ : demand.values()){
+            MCQ.getQuantity().unmodify("deficit");
         }
+        income.unmodify("deficit");
+        upkeep.unmodify("deficit");
+        ci.cancel();
     }
     @Inject(method = "getMaxDeficit", at = @At("HEAD"), cancellable = true)
     private void injectGetMaxDeficit(String[] commodityIds, CallbackInfoReturnable<Pair<String, Integer>> cir) {
-        if (ECON$inApply) {
-            cir.setReturnValue(new Pair<>(null, 0));
+        if (ECON$industryEconomy == null || commodityIds == null) return;
+
+        List<Pair<String, Integer>> allDeficit = getAllDeficit(commodityIds);
+        Pair<String, Integer> maxDeficit = new Pair<>(null, 0);
+        for (Pair<String, Integer> deficit : allDeficit) {
+            if (deficit.two > maxDeficit.two) {
+                maxDeficit.one = deficit.one;
+                maxDeficit.two = deficit.two;
+            }
         }
-    }
-    @Inject(method = "getAllDeficit()Ljava/util/List;", at = @At("HEAD"), cancellable = true)
-    private void injectGetAllDeficit(CallbackInfoReturnable<List<Pair<String, Integer>>> cir) {
-        if (ECON$inApply) {
-            cir.setReturnValue(new ArrayList<>());
-        }
+        cir.setReturnValue(maxDeficit);
     }
     @Inject(method = "getAllDeficit([Ljava/lang/String;)Ljava/util/List;", at = @At("HEAD"), cancellable = true)
     private void injectGetAllDeficit(String[] commodityIds, CallbackInfoReturnable<List<Pair<String, Integer>>> cir) {
-        if (ECON$inApply) {
-            cir.setReturnValue(new ArrayList<>());
+        if (ECON$industryEconomy == null || commodityIds == null) return;
+
+        List<Pair<String, Integer>> result = new ArrayList<>();
+        Map<String, Integer> fullDemand = ECON$industryEconomy.getReferenceSupplyDemand().get("d");
+
+        for (String commodityId : commodityIds) {
+            int industryFullDemand = Math.max(0, fullDemand.getOrDefault(commodityId, 0));
+            float fulfillment = ECON$industryEconomy.getDemandFulfillment(commodityId);
+            int deficit = (int) Math.ceil(industryFullDemand * (1f - fulfillment));
+
+            if (deficit > 0) {
+                result.add(new Pair<>(commodityId, deficit));
+            }
         }
+
+        cir.setReturnValue(result);
     }
 }
