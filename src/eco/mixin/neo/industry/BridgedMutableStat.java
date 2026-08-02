@@ -1,4 +1,4 @@
-package eco.mixin.neo;
+package eco.mixin.neo.industry;
 
 import com.fs.starfarer.api.combat.MutableStat;
 import com.fs.starfarer.api.combat.StatBonus;

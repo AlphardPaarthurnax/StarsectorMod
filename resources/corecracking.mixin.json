@@ -4,10 +4,14 @@
   "package": "eco.mixin.neo.mixin",
   "compatibilityLevel": "JAVA_11",
   "mixins": [
-    "BaseIndustryAccessor",
-    "BaseIndustryMixin",
-    "CommodityOnMarketMixin",
-    "intnewMixin",
-    "PopulationAndInfrastructureMixin"
+    "industry.BaseIndustryAccessor",
+    "industry.BaseIndustryMixin",
+    "market.CommodityMarketDataMixin",
+    "market.CommodityOnMarketMixin",
+    "market.MarketAccessor",
+    "market.MarketDemandMixin",
+    "market.MarketMixin",
+    "industry.intnewMixin",
+    "industry.PopulationAndInfrastructureMixin"
   ]
 }

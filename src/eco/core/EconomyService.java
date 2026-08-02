@@ -35,6 +35,7 @@ public class EconomyService implements EconomyTickListener {
         globalEconomy.updateSupplyDemand();
         globalEconomy.updateTradeStock();
         globalEconomy.updatePrices();
+        globalEconomy.updateMarketInjection();
         EcoDebugDump.dump();
     }
     private static boolean matchMask(String source, String[] mask) {

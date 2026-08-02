@@ -1,4 +1,4 @@
-package eco.mixin.neo;
+package eco.mixin.neo.industry;
 
 import eco.core.IndustryEconomy;
 

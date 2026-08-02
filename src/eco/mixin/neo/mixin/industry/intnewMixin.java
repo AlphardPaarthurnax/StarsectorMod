@@ -1,4 +1,4 @@
-package eco.mixin.neo.mixin;
+package eco.mixin.neo.mixin.industry;
 
 import com.fs.starfarer.campaign.ui.marketinfo.intnew;
 import org.spongepowered.asm.mixin.Mixin;
@@ -6,7 +6,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 
 @Mixin(intnew.class)
-public class intnewMixin {
+public abstract class intnewMixin {
 
     @ModifyArg(method = "sizeChanged",
             at = @At(
@@ -16,7 +16,7 @@ public class intnewMixin {
             ),
             index = 1
     )
-    private int coreCracking$limitDeficitIconsToOne(int amount) {
+    private int modifyArgAddGroup(int amount) {
         return amount > 0 ? 1 : 0;
     }
 }

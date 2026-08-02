@@ -1,21 +1,19 @@
-package eco.mixin.neo.mixin;
+package eco.mixin.neo.mixin.industry;
 
 import com.fs.starfarer.api.campaign.econ.MutableCommodityQuantity;
 import com.fs.starfarer.api.campaign.econ.MarketAPI;
 import com.fs.starfarer.api.combat.MutableStat;
 import com.fs.starfarer.api.impl.campaign.econ.impl.BaseIndustry;
-import com.fs.starfarer.api.impl.campaign.econ.impl.PopulationAndInfrastructure;
 import com.fs.starfarer.api.util.Pair;
 import eco.core.IndustryEconomy;
-import eco.mixin.neo.BaseIndustryBridge;
-import eco.mixin.neo.BridgedMutableCommodityQuantity;
-import eco.mixin.neo.BridgedMutableStat;
+import eco.mixin.neo.industry.BaseIndustryBridge;
+import eco.mixin.neo.industry.BridgedMutableCommodityQuantity;
+import eco.mixin.neo.industry.BridgedMutableStat;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
@@ -32,9 +30,9 @@ public abstract class BaseIndustryMixin implements BaseIndustryBridge {
     @Shadow public abstract List<Pair<String, Integer>> getAllDeficit(String ... commodityIds);
     @Unique private transient Map<String, BridgedMutableCommodityQuantity> ECON$modSupply = new LinkedHashMap<>();
     @Unique private transient Map<String, BridgedMutableCommodityQuantity> ECON$modDemand = new LinkedHashMap<>();
-    @Unique private transient IndustryEconomy ECON$industryEconomy;
-    @Unique private transient BridgedMutableStat ECON$modIncome;
-    @Unique private transient BridgedMutableStat ECON$modUpkeep;
+    @Unique private IndustryEconomy ECON$industryEconomy;
+    @Unique private BridgedMutableStat ECON$modIncome;
+    @Unique private BridgedMutableStat ECON$modUpkeep;
     @Unique
     private void checkTransientMap(){
         if (ECON$modSupply == null) { ECON$modSupply = new LinkedHashMap<>(); }
