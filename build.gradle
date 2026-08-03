@@ -1,11 +1,12 @@
 plugins {
     id 'java'
+    id 'application'
 }
 
 sourceSets {
     main {
         java.srcDirs = ['src']
-        resources.srcDirs = ['resource']
+        resources.srcDirs = ['resources']
     }
 }
 
@@ -23,11 +24,18 @@ tasks.withType(JavaCompile).configureEach {
 
 repositories {
     mavenCentral()
+    maven {
+        name "SpongePowered"
+        url = uri("https://repo.spongepowered.org/maven/")
+    }
 }
 
 dependencies {
     compileOnly files(
             "${starsectorDir}/starsector-core/starfarer.api.jar",
+            "${starsectorDir}/starsector-core/starfarer.api.zip",
+            "${starsectorDir}/starsector-core/starfarer_obf.jar",
+            "${starsectorDir}/starsector-core/fs.common_obf.jar",
 
             "${starsectorDir}/starsector-core/json.jar",
 
@@ -41,12 +49,24 @@ dependencies {
             "${starsectorDir}/mods/MagicLib/jars/MagicLib.jar",
             "${starsectorDir}/mods/LazyLib/jars/LazyLib.jar"
     )
+
+    compileOnly('org.spongepowered:mixin:0.8.7')
+    compileOnly('org.ow2.asm:asm:9.6')
 }
 
 jar {
     archiveBaseName = "${modid}-${modversion}"
+    destinationDirectory = file("$projectDir/out/${modid}/jars")
 
-    destinationDirectory = file("$projectDir/out/jar/")
+    from sourceSets.main.output.classesDirs
+
+    from(sourceSets.main.output.resourcesDir) {
+        exclude 'data/**'
+        exclude 'graphics/**'
+        exclude 'sounds/**'
+    }
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 tasks.register('packaging', Sync) {
@@ -58,6 +78,20 @@ tasks.register('packaging', Sync) {
         exclude "mod_info.json"
     }
 
+    into "$projectDir/out/${modid}"
+
+    preserve {
+        include 'jars/**'
+    }
+}
+
+tasks.register('toGame', Sync) {
+    group = "_runStarsectorMod"
+
+    dependsOn jar
+    dependsOn packaging
+
+    from("$projectDir/out/${modid}")
     from("$projectDir/resources/mod_info.json") {
         expand(
                 modid: modid,
@@ -70,24 +104,6 @@ tasks.register('packaging', Sync) {
                 modMain: modMain
         )
     }
-    into "$projectDir/out/${modid}"
-}
-
-tasks.register('outJar', Sync) {
-    group = "_runStarsectorMod"
-
-    dependsOn packaging
-
-    from "$projectDir/out/jar/${modid}-${modversion}.jar"
-    into "$projectDir/out/${modid}/jars"
-}
-
-tasks.register('toGame', Sync) {
-    group = "_runStarsectorMod"
-
-    dependsOn outJar
-
-    from "$projectDir/out/${modid}"
 
     into "${starsectorDir}/mods/${modid}"
 }
@@ -112,7 +128,7 @@ tasks.register('releaseZip', Zip) {
     group = "_runStarsectorMod"
 
     dependsOn clean
-    dependsOn outJar
+    dependsOn jar
 
     archiveFileName = "${modid}-${modversion}.zip"
 

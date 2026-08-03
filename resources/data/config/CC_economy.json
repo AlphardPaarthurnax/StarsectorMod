@@ -1,0 +1,15 @@
+{
+  "internalTradeTaxRate": 0.10,
+  "freightCostPerCargoSpacePerLY": 1.0,
+  "defaultTradeChain": ["FACTION", "DISTANCE", "PRICE"],
+  "factionTradeChains": {
+    "hegemony": ["FACTION", "DISTANCE", "PRICE"],
+    "tritachyon": ["PRICE", "FACTION", "DISTANCE"],
+    "pirates": ["DISTANCE", "FACTION", "PRICE"],
+    "luddic_church": ["FACTION", "PRICE", "DISTANCE"],
+    "luddic_path": ["DISTANCE", "PRICE", "FACTION"],
+    "sindrian_diktat": ["FACTION", "DISTANCE", "PRICE"],
+    "persean": ["DISTANCE", "FACTION", "PRICE"],
+    "player": ["FACTION", "PRICE", "DISTANCE"]
+  }
+}
