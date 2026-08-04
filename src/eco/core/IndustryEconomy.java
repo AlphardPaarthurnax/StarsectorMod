@@ -6,6 +6,7 @@ import com.fs.starfarer.api.combat.MutableStat;
 import eco.mixin.neo.mixin.industry.BaseIndustryAccessor;
 import eco.mixin.neo.industry.BaseIndustryBridge;
 import eco.mutable.BridgedMutableCommodityQuantity;
+import eco.mutable.BridgedMutableStat;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.Serializable;
@@ -43,8 +44,6 @@ public class IndustryEconomy implements Serializable {
     private Set<String> overloadShortages = new HashSet<>();
     private float profit = 0f;
     private float expectedProfit = 0f;
-    private MutableStat modIncome = new MutableStat(0);
-    private MutableStat modUpkeep = new MutableStat(0);
     public float getDemandFulfillment(String commodityId) {
         return demandFulfillment.getOrDefault(commodityId, 1f);
     }
@@ -58,8 +57,6 @@ public class IndustryEconomy implements Serializable {
         return profit;
     }
     public float getExpectedProfit() { return expectedProfit; }
-    public MutableStat getModIncome() { return modIncome; }
-    public MutableStat getModUpkeep() { return modUpkeep; }
 
         //<editor-fold desc="Useless">
         private Map<String, Integer> baseSupply = new HashMap<>();
@@ -85,6 +82,8 @@ public class IndustryEconomy implements Serializable {
     // ***********************
     private Map<String, BridgedMutableCommodityQuantity> modSupply = new HashMap<>();
     private Map<String, BridgedMutableCommodityQuantity> modDemand = new HashMap<>();
+    private BridgedMutableStat modIncome = null;
+    private BridgedMutableStat modUpkeep = null;
     public BridgedMutableCommodityQuantity getModSupply(String commodityId) {
         return modSupply.get(commodityId);
     }
@@ -97,6 +96,8 @@ public class IndustryEconomy implements Serializable {
     public Map<String, BridgedMutableCommodityQuantity> getAllModDemand() {
         return modDemand;
     }
+    public BridgedMutableStat getModIncome() { return modIncome; }
+    public BridgedMutableStat getModUpkeep() { return modUpkeep; }
     //</editor-fold>
 
 
@@ -238,11 +239,14 @@ public class IndustryEconomy implements Serializable {
         this.expectedProfit = (((BaseIndustryAccessor) industry).getIncomeSource().getModifiedValue() - ((BaseIndustryAccessor) industry).getUpkeepSource().getModifiedValue() * 0.75f) * peopleScale;
         this.profit = income - upkeep;
 
-        modIncome = copyMaskMCQ(((BaseIndustryAccessor) industry).getIncomeSource(), "cc_econ_population_size", "cc_econ_efficiency");
-        modIncome.modifyMult("cc_econ_population_size", peopleScale, "人口规模");
-        modIncome.modifyMult("cc_econ_efficiency", efficiency, "生产效率");
-        modUpkeep = copyMaskMCQ(((BaseIndustryAccessor) industry).getUpkeepSource(), "cc_econ_population_size", "cc_econ_efficiency");
-        modUpkeep.modifyMult("cc_econ_population_size", peopleScale * 0.75f, "人口规模");
-        modUpkeep.modifyMult("cc_econ_efficiency", efficiency, "生产效率");
+        MutableStat msIncome = copyMaskMCQ(((BaseIndustryAccessor) industry).getIncomeSource(), "cc_econ_population_size", "cc_econ_efficiency");
+        msIncome.modifyMult("cc_econ_population_size", peopleScale, "人口规模");
+        msIncome.modifyMult("cc_econ_efficiency", efficiency, "生产效率");
+        modIncome = new BridgedMutableStat(() -> ((BaseIndustryAccessor)industry).getIncomeSource(), () -> msIncome);
+
+        MutableStat msUpkeep = copyMaskMCQ(((BaseIndustryAccessor) industry).getUpkeepSource(), "cc_econ_population_size", "cc_econ_efficiency");
+        msUpkeep.modifyMult("cc_econ_population_size", peopleScale * 0.75f, "人口规模");
+        msUpkeep.modifyMult("cc_econ_efficiency", efficiency, "生产效率");
+        modUpkeep = new BridgedMutableStat(() -> ((BaseIndustryAccessor)industry).getUpkeepSource(), () -> msUpkeep);
     }
 }

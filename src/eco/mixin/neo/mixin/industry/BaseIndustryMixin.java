@@ -26,11 +26,10 @@ public abstract class BaseIndustryMixin implements BaseIndustryBridge {
     @Shadow protected Map<String, MutableCommodityQuantity> demand;
     @Shadow protected MutableStat income;
     @Shadow protected MutableStat upkeep;
-    @Shadow protected MarketAPI market;
     @Shadow public abstract List<Pair<String, Integer>> getAllDeficit(String ... commodityIds);
+
+    @Shadow protected String id;
     @Unique private IndustryEconomy ECON$industryEconomy;
-    @Unique private BridgedMutableStat ECON$modIncome;
-    @Unique private BridgedMutableStat ECON$modUpkeep;
     @Override
     public void ECON$dataUpdate(IndustryEconomy industryEconomy) {
         this.ECON$industryEconomy = industryEconomy;
@@ -60,32 +59,32 @@ public abstract class BaseIndustryMixin implements BaseIndustryBridge {
     @Inject(method = "getSupply", at = @At("HEAD"), cancellable = true)
     public void injectGetSupply(String id, CallbackInfoReturnable<MutableCommodityQuantity> cir){
         if(ECON$industryEconomy == null) return;
-        cir.setReturnValue(ECON$industryEconomy.getModSupply(id));
+        if(ECON$industryEconomy.getModSupply(id) == null) {
+            cir.setReturnValue(new MutableCommodityQuantity(id));
+        } else {
+            cir.setReturnValue(ECON$industryEconomy.getModSupply(id));
+        }
     }
     @Inject(method = "getDemand", at = @At("HEAD"), cancellable = true)
     public void injectGetDemand(String id, CallbackInfoReturnable<MutableCommodityQuantity> cir){
         if(ECON$industryEconomy == null) return;
-        cir.setReturnValue(ECON$industryEconomy.getModDemand(id));
+        if(ECON$industryEconomy.getModDemand(id) == null){
+            cir.setReturnValue(new MutableCommodityQuantity(id));
+        } else {
+            cir.setReturnValue(ECON$industryEconomy.getModDemand(id));
+        }
     }
     @Inject(method = "getIncome", at = @At("HEAD"), cancellable = true)
     public void injectGetIncome(CallbackInfoReturnable<MutableStat> cir){
-        if (ECON$modIncome == null) {
-            ECON$modIncome = new BridgedMutableStat(
-                () -> income,
-                () -> ECON$industryEconomy == null ? null : ECON$industryEconomy.getModIncome()
-            );
-        }
-        cir.setReturnValue(ECON$modIncome);
+        if(ECON$industryEconomy == null) return;
+        if(ECON$industryEconomy.getModIncome() == null) return;
+        cir.setReturnValue(ECON$industryEconomy.getModIncome());
     }
     @Inject(method = "getUpkeep", at = @At("HEAD"), cancellable = true)
     public void injectGetUpkeep(CallbackInfoReturnable<MutableStat> cir){
-        if (ECON$modUpkeep == null) {
-            ECON$modUpkeep = new BridgedMutableStat(
-                    () -> upkeep,
-                    () -> ECON$industryEconomy == null ? null : ECON$industryEconomy.getModUpkeep()
-            );
-        }
-        cir.setReturnValue(ECON$modUpkeep);
+        if(ECON$industryEconomy == null) return;
+        if(ECON$industryEconomy.getModUpkeep() == null) return;
+        cir.setReturnValue(ECON$industryEconomy.getModUpkeep());
     }
     // ***********
     // * mod fix *
