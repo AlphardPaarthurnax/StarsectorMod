@@ -24,6 +24,7 @@ public class IndustryEconomy implements Serializable {
     private Map<String, MutableCommodityQuantity> sourceDemand = new HashMap<>();
     private float peopleScale;
     private float efficiency = 1f;
+    private Map<String, Float> demandEfficiency = new HashMap<>();
     public Industry getIndustry(){
         return industry;
     }
@@ -39,14 +40,10 @@ public class IndustryEconomy implements Serializable {
     // * Useless Data Stream *
     // ***********************
 
-    private Map<String, Float> demandFulfillment = new HashMap<>();
     private Set<String> shortages = new HashSet<>();
     private Set<String> overloadShortages = new HashSet<>();
     private float profit = 0f;
     private float expectedProfit = 0f;
-    public float getDemandFulfillment(String commodityId) {
-        return demandFulfillment.getOrDefault(commodityId, 1f);
-    }
     public Set<String> getShortages() {
         return shortages;
     }
@@ -84,6 +81,7 @@ public class IndustryEconomy implements Serializable {
     private Map<String, BridgedMutableCommodityQuantity> modDemand = new HashMap<>();
     private BridgedMutableStat modIncome = null;
     private BridgedMutableStat modUpkeep = null;
+    private Map<String, Integer> deficit = new HashMap<>();
     public BridgedMutableCommodityQuantity getModSupply(String commodityId) {
         return modSupply.get(commodityId);
     }
@@ -98,6 +96,12 @@ public class IndustryEconomy implements Serializable {
     }
     public BridgedMutableStat getModIncome() { return modIncome; }
     public BridgedMutableStat getModUpkeep() { return modUpkeep; }
+    public Map<String, Integer> getAllDeficit(){
+        return deficit;
+    }
+    public int getDeficit(String commodityId) {
+        return deficit.getOrDefault(commodityId, 0);
+    }
     //</editor-fold>
 
 
@@ -175,8 +179,8 @@ public class IndustryEconomy implements Serializable {
     }
     public void updateEfficiency(Map<String, Float> efficiencyList){
         efficiency = 1.0f;
+        demandEfficiency.clear();
         overload = false;
-        demandFulfillment.clear();
         commodityIds.clear();
         shortages.clear();
         overloadShortages.clear();
@@ -186,9 +190,10 @@ public class IndustryEconomy implements Serializable {
         for(Map.Entry<String, MutableCommodityQuantity> demandSM : sourceDemand.entrySet()){
             commodityIds.add(demandSM.getKey());
             float tempEff = efficiencyList.getOrDefault(demandSM.getKey(), 0f);
-            float fulfillment = Float.isFinite(tempEff) ? Math.max(0f, Math.min(1f, tempEff)) : 0f;
-            demandFulfillment.put(demandSM.getKey(), fulfillment);
+
+            demandEfficiency.put(demandSM.getKey(), Float.isFinite(tempEff) ? Math.max(0f, Math.min(1f, tempEff)) : 0f);
             efficiency = Math.min(efficiency, tempEff);
+
             if(tempEff < 0.1f){
                 overloadShortages.add(demandSM.getKey());
             } else if(tempEff < 1.0f){
@@ -203,6 +208,7 @@ public class IndustryEconomy implements Serializable {
     public void updateSupplyDemand(){
         supply.clear();
         demand.clear();
+        deficit.clear();
         modSupply.clear();
         modDemand.clear();
 
@@ -227,6 +233,8 @@ public class IndustryEconomy implements Serializable {
             newDemandMCQ.getQuantity().modifyMult("cc_econ_efficiency", efficiency, "生产效率");
 
             modDemand.put(commodityId, new BridgedMutableCommodityQuantity(commodityId, demandMCQ::getQuantity, newDemandMCQ::getQuantity));
+
+            deficit.merge(commodityId, (int) (demandMCQ.getQuantity().getModifiedInt() * peopleScale * (1 - demandEfficiency.getOrDefault(commodityId,0f))), Integer::sum);
         }
 
         if (industry instanceof BaseIndustryBridge) {

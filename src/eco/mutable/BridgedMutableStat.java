@@ -34,6 +34,9 @@ public final class BridgedMutableStat extends MutableStat {
         }
         return calculated;
     }
+
+
+    //<editor-fold desc="Calculated Data Getter">
     // ---------------------- //
     // calculated data getter //
     // ---------------------- //
@@ -107,6 +110,9 @@ public final class BridgedMutableStat extends MutableStat {
     public int getModifiedInt() {
         return Math.round(getModifiedValue());
     }
+    //</editor-fold>
+
+    //<editor-fold desc="Source Data Setter">
     // ------------------ //
     // source data setter //
     // ------------------ //
@@ -178,4 +184,5 @@ public final class BridgedMutableStat extends MutableStat {
     public void setBaseValue(float value) {
         getSourceStat().setBaseValue(value);
     }
+    //</editor-fold>
 }

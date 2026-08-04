@@ -120,16 +120,8 @@ public abstract class BaseIndustryMixin implements BaseIndustryBridge {
         if (ECON$industryEconomy == null || commodityIds == null) return;
 
         List<Pair<String, Integer>> result = new ArrayList<>();
-        Map<String, Integer> fullDemand = ECON$industryEconomy.getReferenceSupplyDemand().get("d");
-
-        for (String commodityId : commodityIds) {
-            int industryFullDemand = Math.max(0, fullDemand.getOrDefault(commodityId, 0));
-            float fulfillment = ECON$industryEconomy.getDemandFulfillment(commodityId);
-            int deficit = (int) Math.ceil(industryFullDemand * (1f - fulfillment));
-
-            if (deficit > 0) {
-                result.add(new Pair<>(commodityId, deficit));
-            }
+        for(String commodityId : commodityIds) {
+            result.add(new Pair<>(commodityId,ECON$industryEconomy.getDeficit(commodityId)));
         }
 
         cir.setReturnValue(result);
