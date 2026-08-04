@@ -7,8 +7,11 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 
 @Mixin(PopulationAndInfrastructure.class)
 public abstract class PopulationAndInfrastructureMixin {
-
-    @Redirect(method = "modifyStability", at = @At(value = "INVOKE", target = "Lcom/fs/starfarer/api/impl/campaign/econ/impl/PopulationAndInfrastructure;getIncomeStabilityMult(F)F"))
+    @Redirect(method = "modifyStability",
+            at = @At(value = "INVOKE",
+                    target = "Lcom/fs/starfarer/api/impl/campaign/econ/impl/PopulationAndInfrastructure;getIncomeStabilityMult(F)F"
+            )
+    )
     private static float redirectModifyStability(float stability){
         return 1f;
     }

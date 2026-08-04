@@ -6,11 +6,12 @@ import com.fs.starfarer.api.campaign.StarSystemAPI;
 import com.fs.starfarer.api.campaign.econ.MarketAPI;
 import eco.trade.*;
 
+import java.io.Serializable;
 import java.util.*;
 
 import static eco.core.EconomyService.computePriceMultiplier;
 
-public class SystemEconomy {
+public class SystemEconomy implements Serializable {
     private final StarSystemAPI system;
     private Map<MarketAPI, PlanetEconomy> planetEconomys = new HashMap<>();
     private Set<String> commodityIds = new HashSet<>();

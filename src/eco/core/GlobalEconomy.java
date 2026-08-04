@@ -7,11 +7,12 @@ import com.fs.starfarer.api.campaign.econ.MarketAPI;
 import eco.trade.TradeMatcher;
 import eco.trade.TradeOffer;
 
+import java.io.Serializable;
 import java.util.*;
 
 import static eco.core.EconomyService.computePriceMultiplier;
 
-public class GlobalEconomy{
+public class GlobalEconomy implements Serializable {
     private Map<StarSystemAPI, SystemEconomy> systemEconomys = new HashMap<>();
     private Map<String, List<TradeOffer>> supply = new HashMap<>();
     private Map<String, List<TradeOffer>> demand = new HashMap<>();

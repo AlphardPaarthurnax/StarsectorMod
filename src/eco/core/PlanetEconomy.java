@@ -12,11 +12,12 @@ import eco.mixin.neo.market.MarketBridge;
 import eco.trade.TradeDeal;
 import eco.trade.TradeOffer;
 
+import java.io.Serializable;
 import java.util.*;
 
 import static eco.core.EconomyService.computePriceMultiplier;
 
-public class PlanetEconomy {
+public class PlanetEconomy implements Serializable {
     private final PlanetAPI planet;
     private final MarketAPI market;
     private Map<Industry, IndustryEconomy> industryEconomys = new HashMap<>();

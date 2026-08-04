@@ -7,8 +7,8 @@ import com.fs.starfarer.api.impl.campaign.econ.impl.BaseIndustry;
 import com.fs.starfarer.api.util.Pair;
 import eco.core.IndustryEconomy;
 import eco.mixin.neo.industry.BaseIndustryBridge;
-import eco.mixin.neo.industry.BridgedMutableCommodityQuantity;
-import eco.mixin.neo.industry.BridgedMutableStat;
+import eco.mutable.BridgedMutableCommodityQuantity;
+import eco.mutable.BridgedMutableStat;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -28,94 +28,44 @@ public abstract class BaseIndustryMixin implements BaseIndustryBridge {
     @Shadow protected MutableStat upkeep;
     @Shadow protected MarketAPI market;
     @Shadow public abstract List<Pair<String, Integer>> getAllDeficit(String ... commodityIds);
-    @Unique private transient Map<String, BridgedMutableCommodityQuantity> ECON$modSupply = new LinkedHashMap<>();
-    @Unique private transient Map<String, BridgedMutableCommodityQuantity> ECON$modDemand = new LinkedHashMap<>();
     @Unique private IndustryEconomy ECON$industryEconomy;
     @Unique private BridgedMutableStat ECON$modIncome;
     @Unique private BridgedMutableStat ECON$modUpkeep;
-    @Unique
-    private void checkTransientMap(){
-        if (ECON$modSupply == null) { ECON$modSupply = new LinkedHashMap<>(); }
-        if (ECON$modDemand == null) { ECON$modDemand = new LinkedHashMap<>(); }
-    }
     @Override
     public void ECON$dataUpdate(IndustryEconomy industryEconomy) {
         this.ECON$industryEconomy = industryEconomy;
-        checkTransientMap();
-
-        Set<String> supplyIds = new LinkedHashSet<>(supply.keySet());
-        supplyIds.addAll(industryEconomy.getAllModSupply().keySet());
-
-        for (String commodityId : supplyIds) {
-            ECON$getOrCreateSupplyBridge(commodityId);
-        }
-
-        Set<String> demandIds = new LinkedHashSet<>(demand.keySet());
-        demandIds.addAll(industryEconomy.getAllModDemand().keySet());
-
-        for (String commodityId : demandIds) {
-            ECON$getOrCreateDemandBridge(commodityId);
-        }
-    }
-    @Unique
-    private BridgedMutableCommodityQuantity ECON$getOrCreateSupplyBridge(String commodityId){
-        checkTransientMap();
-        return ECON$modSupply.computeIfAbsent(commodityId, id -> new BridgedMutableCommodityQuantity(
-                id,
-                () -> supply.computeIfAbsent(id, MutableCommodityQuantity::new).getQuantity(),
-                () -> {
-                    IndustryEconomy economy = ECON$industryEconomy;
-                    if (economy == null) return null;
-                    MutableCommodityQuantity calculated = economy.getAllModSupply().get(id);
-                    return calculated == null ? null : calculated.getQuantity();
-                }));
-    }
-    @Unique
-    private BridgedMutableCommodityQuantity ECON$getOrCreateDemandBridge(String commodityId){
-        checkTransientMap();
-        return ECON$modDemand.computeIfAbsent(commodityId, id -> new BridgedMutableCommodityQuantity(
-                id,
-                () -> demand.computeIfAbsent(id, MutableCommodityQuantity::new).getQuantity(),
-                () -> {
-                    IndustryEconomy economy = ECON$industryEconomy;
-                    if (economy == null) return null;
-                    MutableCommodityQuantity calculated = economy.getAllModDemand().get(id);
-                    return calculated == null ? null : calculated.getQuantity();
-                }));
     }
     @Inject(method = "getAllSupply", at = @At("HEAD"), cancellable = true)
     public void injectGetAllSupply(CallbackInfoReturnable<List<MutableCommodityQuantity>> cir){
-        checkTransientMap();
-        Map<String, MutableCommodityQuantity> current = ECON$industryEconomy == null ? supply : ECON$industryEconomy.getAllModSupply();
-
+        if(ECON$industryEconomy == null) return;
         List<MutableCommodityQuantity> result = new ArrayList<>();
-        for (Map.Entry<String, MutableCommodityQuantity> entry : current.entrySet()){
-            if (entry.getValue().getQuantity().getModifiedValue() > 0f){
-                result.add(ECON$getOrCreateSupplyBridge(entry.getKey()));
+        for (BridgedMutableCommodityQuantity MCQ : ECON$industryEconomy.getAllModSupply().values()){
+            if (MCQ.getQuantity().getModifiedValue() > 0f){
+                result.add(MCQ);
             }
         }
         cir.setReturnValue(result);
     }
     @Inject(method = "getAllDemand", at = @At("HEAD"), cancellable = true)
     public void injectGetAllDemand(CallbackInfoReturnable<List<MutableCommodityQuantity>> cir){
-        checkTransientMap();
-        Map<String, MutableCommodityQuantity> current = ECON$industryEconomy == null ? demand : ECON$industryEconomy.getAllModDemand();
-
+        if(ECON$industryEconomy == null) return;
         List<MutableCommodityQuantity> result = new ArrayList<>();
-        for (Map.Entry<String, MutableCommodityQuantity> entry : current.entrySet()){
-            if (entry.getValue().getQuantity().getModifiedValue() > 0f){
-                result.add(ECON$getOrCreateDemandBridge(entry.getKey()));
+        for (BridgedMutableCommodityQuantity MCQ : ECON$industryEconomy.getAllModDemand().values()){
+            if (MCQ.getQuantity().getModifiedValue() > 0f){
+                result.add(MCQ);
             }
         }
         cir.setReturnValue(result);
     }
     @Inject(method = "getSupply", at = @At("HEAD"), cancellable = true)
     public void injectGetSupply(String id, CallbackInfoReturnable<MutableCommodityQuantity> cir){
-        cir.setReturnValue(ECON$getOrCreateSupplyBridge(id));
+        if(ECON$industryEconomy == null) return;
+        cir.setReturnValue(ECON$industryEconomy.getModSupply(id));
     }
     @Inject(method = "getDemand", at = @At("HEAD"), cancellable = true)
     public void injectGetDemand(String id, CallbackInfoReturnable<MutableCommodityQuantity> cir){
-        cir.setReturnValue(ECON$getOrCreateDemandBridge(id));
+        if(ECON$industryEconomy == null) return;
+        cir.setReturnValue(ECON$industryEconomy.getModDemand(id));
     }
     @Inject(method = "getIncome", at = @At("HEAD"), cancellable = true)
     public void injectGetIncome(CallbackInfoReturnable<MutableStat> cir){

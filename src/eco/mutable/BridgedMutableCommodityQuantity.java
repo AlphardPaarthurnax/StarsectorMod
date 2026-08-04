@@ -1,4 +1,4 @@
-package eco.mixin.neo.industry;
+package eco.mutable;
 
 import com.fs.starfarer.api.campaign.econ.MutableCommodityQuantity;
 import com.fs.starfarer.api.combat.MutableStat;

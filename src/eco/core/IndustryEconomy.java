@@ -5,32 +5,111 @@ import com.fs.starfarer.api.campaign.econ.MutableCommodityQuantity;
 import com.fs.starfarer.api.combat.MutableStat;
 import eco.mixin.neo.mixin.industry.BaseIndustryAccessor;
 import eco.mixin.neo.industry.BaseIndustryBridge;
+import eco.mutable.BridgedMutableCommodityQuantity;
+import org.jetbrains.annotations.Nullable;
 
+import java.io.Serializable;
 import java.util.*;
 
 import static eco.core.EconomyService.*;
 
-public class IndustryEconomy {
+public class IndustryEconomy implements Serializable {
+    //<editor-fold desc="Inline Data">
+    // ***************
+    // * Inline Data *
+    // ***************
     private final Industry industry;
-    private Map<String, Integer> supply = new HashMap<>();
-    private Map<String, Integer> demand = new HashMap<>();
-    private Map<String, MutableCommodityQuantity> modSupply = new HashMap<>();
-    private Map<String, MutableCommodityQuantity> modDemand = new HashMap<>();
+    private Map<String, MutableCommodityQuantity> sourceSupply = new HashMap<>();
+    private Map<String, MutableCommodityQuantity> sourceDemand = new HashMap<>();
+    private float peopleScale;
     private float efficiency = 1f;
+    public Industry getIndustry(){
+        return industry;
+    }
+    public float getPeopleScale() { return peopleScale; }
+    public float getEfficiency() {
+        return efficiency;
+    }
+    //</editor-fold>
+
+
+    //<editor-fold desc="Useless Data Stream">
+    // ***********************
+    // * Useless Data Stream *
+    // ***********************
+
     private Map<String, Float> demandFulfillment = new HashMap<>();
-    private Set<String> commodityIds = new HashSet<>();
     private Set<String> shortages = new HashSet<>();
     private Set<String> overloadShortages = new HashSet<>();
     private float profit = 0f;
     private float expectedProfit = 0f;
-    private float income = 0f;
-    private float upkeep = 0f;
     private MutableStat modIncome = new MutableStat(0);
     private MutableStat modUpkeep = new MutableStat(0);
-    private boolean overload = false;
-    public Industry getIndustry(){
-        return industry;
+    public float getDemandFulfillment(String commodityId) {
+        return demandFulfillment.getOrDefault(commodityId, 1f);
     }
+    public Set<String> getShortages() {
+        return shortages;
+    }
+    public Set<String> getOverloadShortages() {
+        return overloadShortages;
+    }
+    public float getProfit() {
+        return profit;
+    }
+    public float getExpectedProfit() { return expectedProfit; }
+    public MutableStat getModIncome() { return modIncome; }
+    public MutableStat getModUpkeep() { return modUpkeep; }
+
+        //<editor-fold desc="Useless">
+        private Map<String, Integer> baseSupply = new HashMap<>();
+        private Map<String, Integer> baseDemand = new HashMap<>();
+        public int getBaseSupply(String commodityId){
+            return baseSupply.getOrDefault(commodityId, 0);
+        }
+        public Map<String, Integer> getAllBaseSupply(){
+            return baseSupply;
+        }
+        public int getBaseDemand(String commodityId){
+            return baseDemand.getOrDefault(commodityId, 0);
+        }
+        public Map<String, Integer> getAllBaseDemand(){
+            return baseDemand;
+        }
+        //</editor-fold>
+    //</editor-fold>
+
+    //<editor-fold desc="UI Data Stream">
+    // ***********************
+    // * UI Data Stream *
+    // ***********************
+    private Map<String, BridgedMutableCommodityQuantity> modSupply = new HashMap<>();
+    private Map<String, BridgedMutableCommodityQuantity> modDemand = new HashMap<>();
+    public BridgedMutableCommodityQuantity getModSupply(String commodityId) {
+        return modSupply.get(commodityId);
+    }
+    public Map<String, BridgedMutableCommodityQuantity> getAllModSupply() {
+        return modSupply;
+    }
+    public BridgedMutableCommodityQuantity getModDemand(String commodityId) {
+        return modDemand.get(commodityId);
+    }
+    public Map<String, BridgedMutableCommodityQuantity> getAllModDemand() {
+        return modDemand;
+    }
+    //</editor-fold>
+
+
+    //<editor-fold desc="Logic Data Stream">
+    // *********************
+    // * Logic Data Stream *
+    // *********************
+    private Map<String, Integer> supply = new HashMap<>();
+    private Map<String, Integer> demand = new HashMap<>();
+    private Set<String> commodityIds = new HashSet<>();
+    private float income = 0f;
+    private float upkeep = 0f;
+    private boolean overload = false;
     public int getSupply(String commodityId) {
         return supply.getOrDefault(commodityId, 0);
     }
@@ -43,86 +122,38 @@ public class IndustryEconomy {
     public Map<String, Integer> getAllDemand() {
         return demand;
     }
-    public MutableCommodityQuantity getModSupply(String commodityId) {
-        return modSupply.getOrDefault(commodityId, new MutableCommodityQuantity(commodityId));
-    }
-    public Map<String, MutableCommodityQuantity> getAllModSupply() {
-        return modSupply;
-    }
-    public MutableCommodityQuantity getModDemand(String commodityId) {
-        return modDemand.getOrDefault(commodityId, new MutableCommodityQuantity(commodityId));
-    }
-    public Map<String, MutableCommodityQuantity> getAllModDemand() {
-        return modDemand;
-    }
-    public float getEfficiency() {
-        return efficiency;
-    }
-    public float getDemandFulfillment(String commodityId) {
-        return demandFulfillment.getOrDefault(commodityId, 1f);
-    }
     public Set<String> getCommodityIds() {
         return commodityIds;
     }
-    public Set<String> getShortages() {
-        return shortages;
-    }
-    public Set<String> getOverloadShortages() {
-        return overloadShortages;
-    }
-    public float getProfit() {
-        return profit;
-    }
-    public float getExpectedProfit() { return expectedProfit; }
     public float getIncome() { return income; }
     public float getUpkeep() { return upkeep; }
-    public MutableStat getModIncome() { return modIncome; }
-    public MutableStat getModUpkeep() { return modUpkeep; }
     public boolean isOverload() {
         return overload;
     }
+    //</editor-fold>
 
 
-    private Map<String, Integer> baseSupply = new HashMap<>();
-    private Map<String, Integer> baseDemand = new HashMap<>();
-    protected int getBaseSupply(String commodityId){
-        return baseSupply.getOrDefault(commodityId, 0);
-    }
-    public Map<String, Integer> getAllBaseSupply(){
-        return baseSupply;
-    }
-    protected int getBaseDemand(String commodityId){
-        return baseDemand.getOrDefault(commodityId, 0);
-    }
-    public Map<String, Integer> getAllBaseDemand(){
-        return baseDemand;
-    }
-
-
-    private Map<String, MutableCommodityQuantity> sourceSupply = new HashMap<>();
-    private Map<String, MutableCommodityQuantity> sourceDemand = new HashMap<>();
-    private float peopleScale;
     public IndustryEconomy(Industry industry){
         this.industry = industry;
     }
     public void updateSource(float peopleScale){
         sourceSupply.clear();
         sourceDemand.clear();
-        baseSupply.clear();
-        baseDemand.clear();
+        //baseSupply.clear();
+        //baseDemand.clear();
 
         Map<String, MutableCommodityQuantity> zeroSupply = ((BaseIndustryAccessor)industry).getSupplySource();
         Map<String, MutableCommodityQuantity> zeroDemand = ((BaseIndustryAccessor)industry).getDemandSource();
         for(Map.Entry<String, MutableCommodityQuantity> zsSM : zeroSupply.entrySet()){
             if(zsSM.getValue().getQuantity().getModifiedInt() > 0){
                 sourceSupply.put(zsSM.getValue().getCommodityId(), zsSM.getValue());
-                baseSupply.merge(zsSM.getValue().getCommodityId(), zsSM.getValue().getQuantity().getModifiedInt(), Integer::sum);
+                //baseSupply.merge(zsSM.getValue().getCommodityId(), zsSM.getValue().getQuantity().getModifiedInt(), Integer::sum);
             }
         }
         for(Map.Entry<String, MutableCommodityQuantity> zdSM : zeroDemand.entrySet()){
             if(zdSM.getValue().getQuantity().getModifiedInt() > 0){
                 sourceDemand.put(zdSM.getValue().getCommodityId(), zdSM.getValue());
-                baseDemand.merge(zdSM.getValue().getCommodityId(), zdSM.getValue().getQuantity().getModifiedInt(), Integer::sum);
+                //baseDemand.merge(zdSM.getValue().getCommodityId(), zdSM.getValue().getQuantity().getModifiedInt(), Integer::sum);
             }
         }
         this.peopleScale = peopleScale;
@@ -174,21 +205,27 @@ public class IndustryEconomy {
         modSupply.clear();
         modDemand.clear();
 
-        for(Map.Entry<String, MutableCommodityQuantity> supplySM : sourceSupply.entrySet()){
-            supply.merge(supplySM.getKey(), (int) (supplySM.getValue().getQuantity().getModifiedInt() * peopleScale * efficiency), Integer::sum);
+        for(MutableCommodityQuantity supplyMCQ : sourceSupply.values()){
+            String commodityId = supplyMCQ.getCommodityId();
 
-            MutableCommodityQuantity newSupplyMCQ = copyMaskMCQ(supplySM.getValue(), "cc_econ_population_size", "cc_econ_efficiency");
+            supply.merge(commodityId, (int) (supplyMCQ.getQuantity().getModifiedInt() * peopleScale * efficiency), Integer::sum);
+
+            MutableCommodityQuantity newSupplyMCQ = copyMaskMCQ(supplyMCQ, "cc_econ_population_size", "cc_econ_efficiency");
             newSupplyMCQ.getQuantity().modifyMult("cc_econ_population_size", peopleScale, "人口规模");
             newSupplyMCQ.getQuantity().modifyMult("cc_econ_efficiency", efficiency, "生产效率");
-            modSupply.put(supplySM.getValue().getCommodityId(), newSupplyMCQ);
-        }
-        for(Map.Entry<String, MutableCommodityQuantity> demandSM : sourceDemand.entrySet()){
-            demand.merge(demandSM.getKey(), (int) (demandSM.getValue().getQuantity().getModifiedInt() * peopleScale * efficiency), Integer::sum);
 
-            MutableCommodityQuantity newDemandMCQ = copyMaskMCQ(demandSM.getValue(), "cc_econ_population_size", "cc_econ_efficiency");
+            modSupply.put(commodityId, new BridgedMutableCommodityQuantity(commodityId, supplyMCQ::getQuantity, newSupplyMCQ::getQuantity));
+        }
+        for(MutableCommodityQuantity demandMCQ : sourceDemand.values()){
+            String commodityId = demandMCQ.getCommodityId();
+
+            demand.merge(commodityId, (int) (demandMCQ.getQuantity().getModifiedInt() * peopleScale * efficiency), Integer::sum);
+
+            MutableCommodityQuantity newDemandMCQ = copyMaskMCQ(demandMCQ, "cc_econ_population_size", "cc_econ_efficiency");
             newDemandMCQ.getQuantity().modifyMult("cc_econ_population_size", peopleScale, "人口规模");
             newDemandMCQ.getQuantity().modifyMult("cc_econ_efficiency", efficiency, "生产效率");
-            modDemand.put(demandSM.getValue().getCommodityId(), newDemandMCQ);
+
+            modDemand.put(commodityId, new BridgedMutableCommodityQuantity(commodityId, demandMCQ::getQuantity, newDemandMCQ::getQuantity));
         }
 
         if (industry instanceof BaseIndustryBridge) {
@@ -208,6 +245,4 @@ public class IndustryEconomy {
         modUpkeep.modifyMult("cc_econ_population_size", peopleScale * 0.75f, "人口规模");
         modUpkeep.modifyMult("cc_econ_efficiency", efficiency, "生产效率");
     }
-
-    public float getPeopleScale() { return peopleScale; }
 }
