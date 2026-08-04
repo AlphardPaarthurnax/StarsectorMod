@@ -156,4 +156,9 @@ public class SystemEconomy implements Serializable {
             factionProfits.put(entry.getKey(), entry.getValue().getNetProfit());
         }
     }
+    public void updateCollectData() {
+        for (PlanetEconomy pe : planetEconomys.values()) {
+            pe.updateCollectData();
+        }
+    }
 }

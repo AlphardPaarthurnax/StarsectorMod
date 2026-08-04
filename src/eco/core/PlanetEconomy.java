@@ -8,7 +8,8 @@ import com.fs.starfarer.api.combat.MutableStat;
 import com.fs.starfarer.api.combat.MutableStatWithTempMods;
 import com.fs.starfarer.campaign.econ.reach.CommodityMarketData;
 import eco.EconomyConfig;
-import eco.mixin.neo.market.MarketBridge;
+import eco.mixin.neo.IBaseIndustryBridge;
+import eco.mixin.neo.IMarketBridge;
 import eco.trade.TradeDeal;
 import eco.trade.TradeOffer;
 
@@ -361,11 +362,12 @@ public class PlanetEconomy implements Serializable {
             }
         }
     }
-
-    /** 把本行星经济数据分发到原版 Market（经 MarketBridge → 商品/需求类） */
-    public void injectToMarket() {
-        if (market instanceof MarketBridge) {
-            ((MarketBridge) market).ECON$dataUpdate(this);
+    public void updateCollectData() {
+        for(IndustryEconomy ie : industryEconomys.values()) {
+            ie.updateCollectData();
+        }
+        if (market instanceof IMarketBridge) {
+            ((IMarketBridge) market).ECON$dataUpdate(this);
         }
     }
 }

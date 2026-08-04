@@ -144,17 +144,9 @@ public class GlobalEconomy implements Serializable {
             factionProfits.put(entry.getKey(), entry.getValue().getNetProfit());
         }
     }
-
-    /**
-     * 月度注回：把各行星的 eco 数据写入原版 Market（available 4 key 填充 + 分发）。
-     * 必须在 updateSource/matchTrade/updateSupplyDemand/updateTradeStock/updatePrices 全部完成后调用。
-     */
-    public void updateMarketInjection() {
+    public void updateCollectData() {
         for (SystemEconomy se : systemEconomys.values()) {
-            for (PlanetEconomy pe : se.getAllPlanetEconomys().values()) {
-                pe.updateAvailableStats();
-                pe.injectToMarket();
-            }
+            se.updateCollectData();
         }
     }
 }

@@ -3,7 +3,8 @@ package eco.mixin.neo.mixin.market;
 import com.fs.starfarer.api.combat.MutableStatWithTempMods;
 import com.fs.starfarer.campaign.econ.CommodityOnMarket;
 import eco.core.PlanetEconomy;
-import eco.mixin.neo.market.EconDataBridge;
+import eco.mixin.neo.IEconDataBridge;
+import eco.mixin.neo.IMarketBridge;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -13,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * <p> 商品级桥接（挂在 {@code CommodityOnMarket} 上）。
- * <p> 数据由 {@link MarketMixin#ECON$dataUpdate} 分发（经 {@link EconDataBridge}）；
+ * <p> 数据由 {@link MarketMixin#ECON$dataUpdate} 分发（经 {@link IEconDataBridge}）；
  * 未分发（ECON$economy 为 null，含读档后）时各 getter 回落原版实现（不 cancel 注入）。
  * <p>
  * <p> 接管语义（读取注回 / 写入接管，见开发计划）：
@@ -27,17 +28,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * </ul>
  */
 @Mixin(CommodityOnMarket.class)
-public abstract class CommodityOnMarketMixin implements EconDataBridge {
-
-    @Unique
-    private PlanetEconomy ECON$economy;
-    @Unique
-    private String ECON$commodityId;
+public abstract class CommodityOnMarketMixin implements IMarketBridge {
+    @Unique private PlanetEconomy ECON$economy;
 
     @Override
-    public void ECON$dataUpdate(PlanetEconomy economy, String commodityId) {
+    public void ECON$dataUpdate(PlanetEconomy economy) {
         this.ECON$economy = economy;
-        this.ECON$commodityId = commodityId;
     }
 
     // -------------------- //

@@ -1,7 +1,7 @@
-package eco.mixin.neo.industry;
+package eco.mixin.neo;
 
 import eco.core.IndustryEconomy;
 
-public interface BaseIndustryBridge {
+public interface IBaseIndustryBridge {
     void ECON$dataUpdate(IndustryEconomy industryEconomy);
 }

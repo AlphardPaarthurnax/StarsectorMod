@@ -4,10 +4,9 @@ import com.fs.starfarer.api.campaign.econ.Industry;
 import com.fs.starfarer.api.campaign.econ.MutableCommodityQuantity;
 import com.fs.starfarer.api.combat.MutableStat;
 import eco.mixin.neo.mixin.industry.BaseIndustryAccessor;
-import eco.mixin.neo.industry.BaseIndustryBridge;
+import eco.mixin.neo.IBaseIndustryBridge;
 import eco.mutable.BridgedMutableCommodityQuantity;
 import eco.mutable.BridgedMutableStat;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.Serializable;
 import java.util.*;
@@ -236,10 +235,6 @@ public class IndustryEconomy implements Serializable {
 
             deficit.merge(commodityId, (int) (demandMCQ.getQuantity().getModifiedInt() * peopleScale * (1 - demandEfficiency.getOrDefault(commodityId,0f))), Integer::sum);
         }
-
-        if (industry instanceof BaseIndustryBridge) {
-            ((BaseIndustryBridge) industry).ECON$dataUpdate(this);
-        }
     }
     public void updateProfit() {
         this.income = ((BaseIndustryAccessor) industry).getIncomeSource().getModifiedValue() * peopleScale * efficiency;
@@ -256,5 +251,10 @@ public class IndustryEconomy implements Serializable {
         msUpkeep.modifyMult("cc_econ_population_size", peopleScale * 0.75f, "人口规模");
         msUpkeep.modifyMult("cc_econ_efficiency", efficiency, "生产效率");
         modUpkeep = new BridgedMutableStat(() -> ((BaseIndustryAccessor)industry).getUpkeepSource(), () -> msUpkeep);
+    }
+    public void updateCollectData() {
+        if (industry instanceof IBaseIndustryBridge) {
+            ((IBaseIndustryBridge) industry).ECON$dataUpdate(this);
+        }
     }
 }

@@ -1,14 +1,12 @@
 package eco.mixin.neo.mixin.industry;
 
 import com.fs.starfarer.api.campaign.econ.MutableCommodityQuantity;
-import com.fs.starfarer.api.campaign.econ.MarketAPI;
 import com.fs.starfarer.api.combat.MutableStat;
 import com.fs.starfarer.api.impl.campaign.econ.impl.BaseIndustry;
 import com.fs.starfarer.api.util.Pair;
 import eco.core.IndustryEconomy;
-import eco.mixin.neo.industry.BaseIndustryBridge;
+import eco.mixin.neo.IBaseIndustryBridge;
 import eco.mutable.BridgedMutableCommodityQuantity;
-import eco.mutable.BridgedMutableStat;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -20,15 +18,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.util.*;
 
 @Mixin(BaseIndustry.class)
-public abstract class BaseIndustryMixin implements BaseIndustryBridge {
+public abstract class BaseIndustryMixin implements IBaseIndustryBridge {
 
     @Shadow protected Map<String, MutableCommodityQuantity> supply;
     @Shadow protected Map<String, MutableCommodityQuantity> demand;
     @Shadow protected MutableStat income;
     @Shadow protected MutableStat upkeep;
     @Shadow public abstract List<Pair<String, Integer>> getAllDeficit(String ... commodityIds);
-
-    @Shadow protected String id;
     @Unique private IndustryEconomy ECON$industryEconomy;
     @Override
     public void ECON$dataUpdate(IndustryEconomy industryEconomy) {

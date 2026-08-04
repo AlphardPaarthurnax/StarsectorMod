@@ -5,9 +5,7 @@ import com.fs.starfarer.api.campaign.econ.MutableCommodityQuantity;
 import com.fs.starfarer.api.campaign.listeners.EconomyTickListener;
 import com.fs.starfarer.api.combat.MutableStat;
 import eco.EcoDebugDump;
-import eco.core.GlobalEconomy;
 
-import java.util.Map;
 import java.util.Objects;
 
 public class EconomyService implements EconomyTickListener {
@@ -35,7 +33,8 @@ public class EconomyService implements EconomyTickListener {
         globalEconomy.updateSupplyDemand();
         globalEconomy.updateTradeStock();
         globalEconomy.updatePrices();
-        globalEconomy.updateMarketInjection();
+
+        globalEconomy.updateCollectData();
         EcoDebugDump.dump();
     }
     private static boolean matchMask(String source, String[] mask) {

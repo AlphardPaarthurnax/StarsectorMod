@@ -1,7 +1,7 @@
-package eco.mixin.neo.market;
+package eco.mixin.neo;
 
 import eco.core.PlanetEconomy;
 
-public interface MarketBridge {
+public interface IMarketBridge {
     void ECON$dataUpdate(PlanetEconomy economy);
 }
