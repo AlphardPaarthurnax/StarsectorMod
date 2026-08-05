@@ -8,6 +8,7 @@ import com.fs.starfarer.api.campaign.econ.MarketAPI;
 import com.fs.starfarer.api.campaign.econ.MutableCommodityQuantity;
 import com.fs.starfarer.api.combat.MutableStat;
 import eco.core.*;
+import eco.mutable.BridgedMutableCommodityQuantity;
 import eco.trade.TradeDeal;
 import eco.trade.TradeOffer;
 import eco.trade.TradeStrategy;
@@ -27,7 +28,7 @@ public class EcoDebugDump {
         String path = new File("D:\\Starsector\\corecracking_debug.html").getAbsolutePath();
 
         try (OutputStreamWriter ow = new OutputStreamWriter(
-                new FileOutputStream(path), Charset.forName("GBK"))) {
+                new FileOutputStream(path), Charset.forName("UTF-8"))) {
             ow.write(buildHtml(month));
         } catch (Exception e) {
             Global.getLogger(EcoDebugDump.class).error("Dump failed", e);
@@ -36,7 +37,7 @@ public class EcoDebugDump {
 
     private static String buildHtml(int month) {
         StringBuilder sb = new StringBuilder();
-        sb.append("<!DOCTYPE html><html><head><meta charset=\"GBK\"><title>CC Economy Debug</title><style>");
+        sb.append("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>CC Economy Debug</title><style>");
         sb.append(":root{--bg:#1a1a2e;--card:#16213e;--text:#e0e0e0;--dim:#888;--green:#4caf50;--yellow:#ffc107;--red:#f44336;--orange:#ff9800;--cyan:#00bcd4;--stock:#7c4dff;--border:#2a2a4a;--th:#0d1b3e}");
         sb.append("body{font-family:'Consolas','Courier New',monospace;font-size:13px;background:var(--bg);color:var(--text);margin:0;padding:16px}");
         sb.append("*{box-sizing:border-box}");
@@ -81,6 +82,10 @@ public class EcoDebugDump {
         sb.append("<h1>CC Economy Debug</h1>");
         long marketCount = Global.getSector().getEconomy().getMarketsCopy().stream().filter(MarketAPI::isInEconomy).count();
         sb.append("<div class=\"subtitle\">Month ").append(month).append(" &mdash; ").append(marketCount).append(" markets in economy</div><br>");
+        sb.append("<div class=\"subtitle\">");
+        sb.append("<button onclick=\"document.querySelectorAll('details').forEach(function(d){d.open=true})\">\u5c55\u5f00\u5168\u90e8</button> ");
+        sb.append("<button onclick=\"document.querySelectorAll('details').forEach(function(d){d.open=false})\">\u6298\u53e0\u5168\u90e8</button> ");
+        sb.append("</div><br>");
 
         sb.append(dumpGlobal());
         sb.append("</body></html>");
@@ -92,7 +97,7 @@ public class EcoDebugDump {
         Map<StarSystemAPI, SystemEconomy> systems = ge.getAllSystemEconomys();
         StringBuilder sb = new StringBuilder();
 
-        sb.append("<br><details open><summary><span style=\"color:var(--yellow)\">Trade Strategy Config</span></summary><table>");
+        sb.append("<br><details><summary><span style=\"color:var(--yellow)\">Trade Strategy Config</span></summary><table>");
         sb.append("<tr><th>faction</th><th>chain</th></tr>");
         sb.append("<tr><td class=\"commodity\">default</td><td>").append(chainToStr(EconomyConfig.getDefaultTradeChain())).append("</td></tr>");
         for (Map.Entry<String, List<TradeStrategy>> e : EconomyConfig.getFactionTradeChains().entrySet()) {
@@ -101,7 +106,7 @@ public class EcoDebugDump {
         }
         sb.append("</table></details>");
 
-        sb.append("<details open><summary><span style=\"color:var(--yellow)\">Economy Profit Config</span></summary>");
+        sb.append("<details><summary><span style=\"color:var(--yellow)\">Economy Profit Config</span></summary>");
         sb.append("<div class=\"kv\"><span class=\"kv-label\">internalTradeTaxRate:</span> ")
                 .append(String.format("%.2f%%", EconomyConfig.getInternalTradeTaxRate() * 100f)).append("</div>");
         sb.append("<div class=\"kv\"><span class=\"kv-label\">freightCostPerCargoSpacePerLY:</span> ")
@@ -111,7 +116,7 @@ public class EcoDebugDump {
 
         Map<String, Float> gp = ge.getGlobalPrices();
         if (!gp.isEmpty()) {
-            sb.append("<br><details open><summary><span style=\"color:var(--yellow)\">Global Prices</span></summary>");
+            sb.append("<br><details><summary><span style=\"color:var(--yellow)\">Global Prices</span></summary>");
             sb.append("<table class=\"trade-table\">");
             sb.append("<tr><th>commodityId</th><th>price</th></tr>");
             List<String> gids = new ArrayList<>(gp.keySet());
@@ -125,13 +130,13 @@ public class EcoDebugDump {
 
         Map<FactionAPI, Profit> geFP = ge.getFactionProfitBreakdowns();
         if (!geFP.isEmpty()) {
-            sb.append("<br><details open><summary><span style=\"color:var(--yellow)\">Global Faction Profits</span></summary>");
+            sb.append("<br><details><summary><span style=\"color:var(--yellow)\">Global Faction Profits</span></summary>");
             sb.append(dumpFactionProfitTable(geFP));
             sb.append("</details>");
         }
 
         if (!ge.getAllSupply().isEmpty() || !ge.getAllDemand().isEmpty()) {
-            sb.append("<br><details open><summary><span style=\"color:var(--orange)\">Global Unmatched</span></summary>");
+            sb.append("<br><details><summary><span style=\"color:var(--orange)\">Global Unmatched</span></summary>");
             if (!ge.getAllSupply().isEmpty()) {
                 sb.append("<div class=\"section-label\">Unmatched Supply:</div>");
                 sb.append(dumpAggregateOfferTable(ge.getAllSupply(), true));
@@ -155,7 +160,7 @@ public class EcoDebugDump {
         Map<MarketAPI, PlanetEconomy> planets = se.getAllPlanetEconomys();
         StringBuilder sb = new StringBuilder();
         String sysName = se.getSystem() != null ? se.getSystem().getName() : "?";
-        sb.append("<details open><summary><span class=\"sys-header\">SystemEconomy</span>: ").append(esc(sysName)).append(" &mdash; ").append(planets.size()).append(" planets</summary>");
+        sb.append("<details><summary><span class=\"sys-header\">SystemEconomy</span>: ").append(esc(sysName)).append(" &mdash; ").append(planets.size()).append(" planets</summary>");
 
         if (se.getSovereigntyFaction() != null) {
             sb.append("<div class=\"kv\"><span class=\"kv-label\">sovereignty:</span> ");
@@ -201,7 +206,7 @@ public class EcoDebugDump {
     private static String dumpPlanet(PlanetEconomy pe) {
         StringBuilder sb = new StringBuilder();
         String label = pe.getMarketName() + " &mdash; " + pe.getPlanetName() + " (size=" + pe.getMarketSize() + ") &mdash; " + pe.getFactionId();
-        sb.append("<details open><summary><span class=\"planet-header\">PlanetEconomy</span>: ").append(esc(label));
+        sb.append("<details><summary><span class=\"planet-header\">PlanetEconomy</span>: ").append(esc(label));
         sb.append(" <span class=\"kv-label\">planetProfit:</span>");
         float pp = pe.getProfit().getNetProfit();
         sb.append(pp >= 0 ? "<span class=\"pos\">+" + fmtNumFloat(pp) + "</span>"
@@ -321,7 +326,7 @@ public class EcoDebugDump {
             tags.append("<span class=\"tag tag-shortage\">short:[")
                     .append(String.join(",", ie.getShortages())).append("]</span>");
 
-        sb.append("<details open><summary><span class=\"indi-header\">IndustryEconomy</span>: ").append(esc(name))
+        sb.append("<details><summary><span class=\"indi-header\">IndustryEconomy</span>: ").append(esc(name))
                 .append("  eff=").append(String.format("%.0f%%", eff * 100))
                 .append(" <span class=\"bar-wrap\"><span class=\"bar-fill ").append(barColor)
                 .append("\" style=\"width:").append(barPct).append("%\"></span></span>")
@@ -350,8 +355,8 @@ public class EcoDebugDump {
         Set<String> allIds = new TreeSet<>();
         allIds.addAll(ie.getAllSupply().keySet());
         allIds.addAll(ie.getAllDemand().keySet());
-        allIds.addAll(ie.getAllBaseSupply().keySet());
-        allIds.addAll(ie.getAllBaseDemand().keySet());
+        allIds.addAll(ie.getAllRefSupply().keySet());
+        allIds.addAll(ie.getAllRefDemand().keySet());
 
         if (!allIds.isEmpty()) {
             sb.append("<table class=\"data-table\">");
@@ -359,8 +364,8 @@ public class EcoDebugDump {
             for (String cid : allIds) {
                 int s = ie.getAllSupply().getOrDefault(cid, 0);
                 int d = ie.getAllDemand().getOrDefault(cid, 0);
-                int bs = ie.getAllBaseSupply().getOrDefault(cid, 0);
-                int bd = ie.getAllBaseDemand().getOrDefault(cid, 0);
+                int bs = ie.getAllRefSupply().getOrDefault(cid, 0);
+                int bd = ie.getAllRefDemand().getOrDefault(cid, 0);
                 sb.append("<tr>");
                 sb.append("<td class=\"commodity\">").append(esc(cid)).append("</td>");
                 sb.append("<td>").append(s == 0 ? "<span class=\"zero\">0</span>" : String.valueOf(s)).append("</td>");
@@ -383,13 +388,13 @@ public class EcoDebugDump {
             sb.append("]</div>");
         }
 
-        Map<String, MutableCommodityQuantity> modSupply = ie.getAllModSupply();
+        Map<String, BridgedMutableCommodityQuantity> modSupply = ie.getAllModSupply();
         if (!modSupply.isEmpty()) {
             sb.append("<div class=\"section-label\">modSupply details:</div>");
             sb.append(buildModTable(modSupply));
         }
 
-        Map<String, MutableCommodityQuantity> modDemand = ie.getAllModDemand();
+        Map<String, BridgedMutableCommodityQuantity> modDemand = ie.getAllModDemand();
         if (!modDemand.isEmpty()) {
             sb.append("<div class=\"section-label\">modDemand details:</div>");
             sb.append(buildModTable(modDemand));
@@ -552,7 +557,7 @@ public class EcoDebugDump {
         return sb.toString();
     }
 
-    private static String buildModTable(Map<String, MutableCommodityQuantity> modMap) {
+    private static String buildModTable(Map<String, ? extends MutableCommodityQuantity> modMap) {
         StringBuilder sb = new StringBuilder();
         boolean hasAny = false;
         for (MutableCommodityQuantity mcq : modMap.values()) {
@@ -570,7 +575,7 @@ public class EcoDebugDump {
 
         sb.append("<table class=\"mod-table\">");
         sb.append("<tr><th>commodityId</th><th>base</th><th>type</th><th>key</th><th>value</th><th>desc</th></tr>");
-        for (Map.Entry<String, MutableCommodityQuantity> entry : modMap.entrySet()) {
+        for (Map.Entry<String, ? extends MutableCommodityQuantity> entry : modMap.entrySet()) {
             String cid = entry.getKey();
             MutableCommodityQuantity mcq = entry.getValue();
             MutableStat qty = mcq.getQuantity();
