@@ -6,12 +6,13 @@
   "mixins": [
     "industry.BaseIndustryAccessor",
     "industry.BaseIndustryMixin",
+    "industry.intnewMixin",
+    "industry.PopulationAndInfrastructureMixin",
     "market.CommodityMarketDataMixin",
     "market.CommodityOnMarketMixin",
     "market.MarketAccessor",
+    "market.MarketDemandAccessor",
     "market.MarketDemandMixin",
-    "market.MarketMixin",
-    "industry.intnewMixin",
-    "industry.PopulationAndInfrastructureMixin"
+    "market.MarketMixin"
   ]
 }

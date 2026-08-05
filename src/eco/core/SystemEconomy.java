@@ -12,6 +12,33 @@ import java.util.*;
 import static eco.core.EconomyService.computePriceMultiplier;
 
 public class SystemEconomy implements Serializable {
+    //<editor-fold desc="Inline Data">
+    // ***************
+    // * Inline Data *
+    // ***************
+
+    //</editor-fold>
+
+    //<editor-fold desc="Useless Data Stream">
+    // ***********************
+    // * Useless Data Stream *
+    // ***********************
+
+    //</editor-fold>
+
+    //<editor-fold desc="UI Data Stream">
+    // ******************
+    // * UI Data Stream *
+    // ******************
+
+    //</editor-fold>
+
+    //<editor-fold desc="Logic Data Stream">
+    // *********************
+    // * Logic Data Stream *
+    // *********************
+
+    //</editor-fold>
     private final StarSystemAPI system;
     private Map<MarketAPI, PlanetEconomy> planetEconomys = new HashMap<>();
     private Set<String> commodityIds = new HashSet<>();

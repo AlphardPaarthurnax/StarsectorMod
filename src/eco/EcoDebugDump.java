@@ -217,8 +217,8 @@ public class EcoDebugDump {
         allIds.addAll(pe.getAllActualSupply().keySet());
         allIds.addAll(pe.getAllActualDemand().keySet());
         allIds.addAll(pe.getDomesticDemand().keySet());
-        allIds.addAll(pe.getBaseSupply().keySet());
-        allIds.addAll(pe.getBaseDemand().keySet());
+        allIds.addAll(pe.getAllBaseSupply().keySet());
+        allIds.addAll(pe.getAllBaseDemand().keySet());
         allIds.addAll(pe.getAllPrice().keySet());
 
         if (!allIds.isEmpty()) {
@@ -230,8 +230,8 @@ public class EcoDebugDump {
                 int as = pe.getAllActualSupply().getOrDefault(cid, 0);
                 int ad = pe.getAllActualDemand().getOrDefault(cid, 0);
                 int domestic = pe.getDomesticDemand().getOrDefault(cid, 0);
-                int bs = pe.getBaseSupply().getOrDefault(cid, 0);
-                int bd = pe.getBaseDemand().getOrDefault(cid, 0);
+                int bs = pe.getAllBaseSupply().getOrDefault(cid, 0);
+                int bd = pe.getAllBaseDemand().getOrDefault(cid, 0);
                 float price = pe.getAllPrice().getOrDefault(cid, 0f);
                 String netClass = net > 0 ? "pos" : (net < 0 ? "neg" : "zero");
                 String netStr = net >= 0 ? ("+" + net) : Integer.toString(net);

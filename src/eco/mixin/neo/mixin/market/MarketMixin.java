@@ -9,7 +9,6 @@ import eco.mixin.neo.IMarketBridge;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 
-import java.util.Map;
 
 @Mixin(Market.class)
 public abstract class MarketMixin implements IMarketBridge {

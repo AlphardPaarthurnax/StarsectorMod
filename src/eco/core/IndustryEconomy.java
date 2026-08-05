@@ -110,6 +110,8 @@ public class IndustryEconomy implements Serializable {
     // *********************
     private Map<String, Integer> supply = new HashMap<>();
     private Map<String, Integer> demand = new HashMap<>();
+    private Map<String, Integer> refSupply = new HashMap<>();
+    private Map<String, Integer> refDemand = new HashMap<>();
     private Set<String> commodityIds = new HashSet<>();
     private float income = 0f;
     private float upkeep = 0f;
@@ -133,6 +135,18 @@ public class IndustryEconomy implements Serializable {
     public float getUpkeep() { return upkeep; }
     public boolean isOverload() {
         return overload;
+    }
+    public Map<String, Integer> getAllRefSupply(){
+        return refSupply;
+    }
+    public Map<String, Integer> getAllRefDemand(){
+        return refDemand;
+    }
+    public int getRefSupply(String commodityId){
+        return refSupply.getOrDefault(commodityId, 0);
+    }
+    public int getRefDemand(String commodityId){
+        return refDemand.getOrDefault(commodityId, 0);
     }
     //</editor-fold>
 
@@ -162,19 +176,15 @@ public class IndustryEconomy implements Serializable {
         }
         this.peopleScale = peopleScale;
     }
-    public Map<String, Map<String, Integer>> getReferenceSupplyDemand(){
-        Map<String, Integer> RS = new HashMap<>();
-        Map<String, Integer> RD = new HashMap<>();
+    public void updateReferenceSupplyDemand(){
+        refSupply.clear();
+        refDemand.clear();
         for(Map.Entry<String, MutableCommodityQuantity> supplySM : sourceSupply.entrySet()){
-            RS.merge(supplySM.getKey(), (int) (supplySM.getValue().getQuantity().getModifiedInt() * peopleScale), Integer::sum);
+            refSupply.merge(supplySM.getKey(), (int) (supplySM.getValue().getQuantity().getModifiedInt() * peopleScale), Integer::sum);
         }
         for(Map.Entry<String, MutableCommodityQuantity> demandSM : sourceDemand.entrySet()){
-            RD.merge(demandSM.getKey(), (int) (demandSM.getValue().getQuantity().getModifiedInt() * peopleScale), Integer::sum);
+            refDemand.merge(demandSM.getKey(), (int) (demandSM.getValue().getQuantity().getModifiedInt() * peopleScale), Integer::sum);
         }
-        Map<String, Map<String, Integer>> ret = new HashMap<>();
-        ret.put("s",RS);
-        ret.put("d",RD);
-        return ret;
     }
     public void updateEfficiency(Map<String, Float> efficiencyList){
         efficiency = 1.0f;
