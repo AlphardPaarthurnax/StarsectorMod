@@ -10,8 +10,6 @@ import com.fs.starfarer.api.combat.MutableStatWithTempMods;
 import com.fs.starfarer.campaign.econ.reach.CommodityMarketData;
 import eco.EconomyConfig;
 import eco.ui.IMarketBridge;
-import eco.ui.mixin.market.MarketDemandAccessor;
-import eco.ui.mutable.BridgedMutableStat;
 import eco.core.trade.TradeDeal;
 import eco.core.trade.TradeOffer;
 
@@ -81,14 +79,7 @@ public class PlanetEconomy implements Serializable {
     // ******************
     // * UI Data Stream *
     // ******************
-    private Map<String, BridgedMutableStat> demandMS = new HashMap<>();
     private Map<String, MutableStatWithTempMods> available = new HashMap<>();
-    public Map<String, BridgedMutableStat> getAllDemandMS() {
-        return demandMS;
-    }
-    public BridgedMutableStat getDemandMS(String commodityId) {
-        return demandMS.get(commodityId);
-    }
     public Map<String, MutableStatWithTempMods> getAllAvailable() {
         return available;
     }
@@ -216,7 +207,6 @@ public class PlanetEconomy implements Serializable {
     }
     public void updateSupplyDemand(){
         netSD.clear();
-        demandMS.clear();
         supply.clear();
         demand.clear();
         actualSupply.clear();
@@ -258,7 +248,18 @@ public class PlanetEconomy implements Serializable {
             }
         }
         for(Map.Entry<String, MutableStat> SMS : demandMStB.entrySet()){
-            demandMS.put(SMS.getKey(), new BridgedMutableStat(() -> ((MarketDemandAccessor) market.getDemand(SMS.getKey())).getDemandSource(), SMS::getValue));
+            // 直写 vanilla MarketDemand.getDemand() 堆（不再走 bridge/mixin）：
+            // 先移除该需求堆上所有上月的 c3ore_* 修饰（产业可能消失/改名/停供，旧 key 不会
+            // 被 vanilla 清除），再写入本月各产业聚合后的需求。
+            MutableStat demandStat = market.getDemand(SMS.getKey()).getDemand();
+            for (String source : new ArrayList<>(demandStat.getFlatMods().keySet())) {
+                if (source.startsWith("c3ore_")) {
+                    demandStat.unmodify(source);
+                }
+            }
+            for (Map.Entry<String, MutableStat.StatMod> mod : SMS.getValue().getFlatMods().entrySet()) {
+                demandStat.modifyFlat(mod.getKey(), mod.getValue().value, mod.getValue().desc);
+            }
         }
 
         Map<String, Map<FactionAPI, Integer>> importSFI = new HashMap<>();

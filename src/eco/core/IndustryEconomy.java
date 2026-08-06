@@ -1,14 +1,10 @@
 package eco.core;
 
-import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.econ.Industry;
 import com.fs.starfarer.api.campaign.econ.MutableCommodityQuantity;
-import com.fs.starfarer.api.campaign.rules.MemoryAPI;
 import com.fs.starfarer.api.combat.MutableStat;
 import eco.ui.mixin.industry.BaseIndustryAccessor;
 import eco.ui.IBaseIndustryBridge;
-import eco.ui.mutable.BridgedMutableCommodityQuantity;
-import eco.ui.mutable.BridgedMutableStat;
 
 import java.util.*;
 
@@ -77,25 +73,7 @@ public class IndustryEconomy {
     // ***********************
     // * UI Data Stream *
     // ***********************
-    private Map<String, BridgedMutableCommodityQuantity> modSupply = new HashMap<>();
-    private Map<String, BridgedMutableCommodityQuantity> modDemand = new HashMap<>();
-    private BridgedMutableStat modIncome = null;
-    private BridgedMutableStat modUpkeep = null;
     private Map<String, Integer> deficit = new HashMap<>();
-    public BridgedMutableCommodityQuantity getModSupply(String commodityId) {
-        return modSupply.get(commodityId);
-    }
-    public Map<String, BridgedMutableCommodityQuantity> getAllModSupply() {
-        return modSupply;
-    }
-    public BridgedMutableCommodityQuantity getModDemand(String commodityId) {
-        return modDemand.get(commodityId);
-    }
-    public Map<String, BridgedMutableCommodityQuantity> getAllModDemand() {
-        return modDemand;
-    }
-    public BridgedMutableStat getModIncome() { return modIncome; }
-    public BridgedMutableStat getModUpkeep() { return modUpkeep; }
     public Map<String, Integer> getAllDeficit(){
         return deficit;
     }
@@ -163,6 +141,20 @@ public class IndustryEconomy {
 
         Map<String, MutableCommodityQuantity> zeroSupply = ((BaseIndustryAccessor)industry).getSupplySource();
         Map<String, MutableCommodityQuantity> zeroDemand = ((BaseIndustryAccessor)industry).getDemandSource();
+
+        // 经济堆清理（direct-write 前提）：cc_econ_* 修饰直接写在 vanilla 共享堆上，
+        // 而 vanilla 从不清除未知 key，跨月会残留上月的 cc_econ_*。
+        // 若不先 unmodify，本月 getModifiedInt() 读到的是“纯 base × 上月 peopleScale × 上月 efficiency”，
+        // 再乘一次即双重缩放。因此必须在读取前剥离，拿到干净的 vanilla base。
+        for (MutableCommodityQuantity mcq : zeroSupply.values()) {
+            mcq.getQuantity().unmodify("cc_econ_population_size");
+            mcq.getQuantity().unmodify("cc_econ_efficiency");
+        }
+        for (MutableCommodityQuantity mcq : zeroDemand.values()) {
+            mcq.getQuantity().unmodify("cc_econ_population_size");
+            mcq.getQuantity().unmodify("cc_econ_efficiency");
+        }
+
         for(Map.Entry<String, MutableCommodityQuantity> zsSM : zeroSupply.entrySet()){
             if(zsSM.getValue().getQuantity().getModifiedInt() > 0){
                 sourceSupply.put(zsSM.getValue().getCommodityId(), zsSM.getValue());
@@ -219,49 +211,55 @@ public class IndustryEconomy {
         supply.clear();
         demand.clear();
         deficit.clear();
-        modSupply.clear();
-        modDemand.clear();
 
         for(MutableCommodityQuantity supplyMCQ : sourceSupply.values()){
             String commodityId = supplyMCQ.getCommodityId();
 
+            // 读取前剥离 cc_econ_*（同 updateSource 的理由：防止堆上残留导致双重缩放）
+            supplyMCQ.getQuantity().unmodify("cc_econ_population_size");
+            supplyMCQ.getQuantity().unmodify("cc_econ_efficiency");
+
             supply.merge(commodityId, (int) (supplyMCQ.getQuantity().getModifiedInt() * peopleScale * efficiency), Integer::sum);
 
-            MutableCommodityQuantity newSupplyMCQ = copyMaskMCQ(supplyMCQ, "cc_econ_population_size", "cc_econ_efficiency");
-            newSupplyMCQ.getQuantity().modifyMult("cc_econ_population_size", peopleScale, "人口规模");
-            newSupplyMCQ.getQuantity().modifyMult("cc_econ_efficiency", efficiency, "生产效率");
-
-            modSupply.put(commodityId, new BridgedMutableCommodityQuantity(commodityId, supplyMCQ::getQuantity, newSupplyMCQ::getQuantity));
+            // 直写 vanilla 堆：modifyMult 同 key 就地替换，原版 getAllSupply()/UI 直接看到缩放后的产量
+            supplyMCQ.getQuantity().modifyMult("cc_econ_population_size", peopleScale, "人口规模");
+            supplyMCQ.getQuantity().modifyMult("cc_econ_efficiency", efficiency, "生产效率");
         }
         for(MutableCommodityQuantity demandMCQ : sourceDemand.values()){
             String commodityId = demandMCQ.getCommodityId();
 
+            demandMCQ.getQuantity().unmodify("cc_econ_population_size");
+            demandMCQ.getQuantity().unmodify("cc_econ_efficiency");
+
             demand.merge(commodityId, (int) (demandMCQ.getQuantity().getModifiedInt() * peopleScale * efficiency), Integer::sum);
 
-            MutableCommodityQuantity newDemandMCQ = copyMaskMCQ(demandMCQ, "cc_econ_population_size", "cc_econ_efficiency");
-            newDemandMCQ.getQuantity().modifyMult("cc_econ_population_size", peopleScale, "人口规模");
-            newDemandMCQ.getQuantity().modifyMult("cc_econ_efficiency", efficiency, "生产效率");
-
-            modDemand.put(commodityId, new BridgedMutableCommodityQuantity(commodityId, demandMCQ::getQuantity, newDemandMCQ::getQuantity));
+            demandMCQ.getQuantity().modifyMult("cc_econ_population_size", peopleScale, "人口规模");
+            demandMCQ.getQuantity().modifyMult("cc_econ_efficiency", efficiency, "生产效率");
 
             deficit.merge(commodityId, (int) (demandMCQ.getQuantity().getModifiedInt() * peopleScale * (1 - demandEfficiency.getOrDefault(commodityId,0f))), Integer::sum);
         }
     }
     public void updateProfit() {
-        this.income = ((BaseIndustryAccessor) industry).getIncomeSource().getModifiedValue() * peopleScale * efficiency;
-        this.upkeep = ((BaseIndustryAccessor) industry).getUpkeepSource().getModifiedValue() * peopleScale * efficiency * 0.75f;
-        this.expectedProfit = (((BaseIndustryAccessor) industry).getIncomeSource().getModifiedValue() - ((BaseIndustryAccessor) industry).getUpkeepSource().getModifiedValue() * 0.75f) * peopleScale;
+        MutableStat incomeSource = ((BaseIndustryAccessor) industry).getIncomeSource();
+        MutableStat upkeepSource = ((BaseIndustryAccessor) industry).getUpkeepSource();
+
+        // cc_econ_* 修饰直接写在 vanilla income/upkeep 堆上，vanilla 从不清除未知 key，
+        // 读取前必须 unmodify，否则读到的 modifiedValue 含上月残留缩放，造成双重缩放
+        incomeSource.unmodify("cc_econ_population_size");
+        incomeSource.unmodify("cc_econ_efficiency");
+        upkeepSource.unmodify("cc_econ_population_size");
+        upkeepSource.unmodify("cc_econ_efficiency");
+
+        this.income = incomeSource.getModifiedValue() * peopleScale * efficiency;
+        this.upkeep = upkeepSource.getModifiedValue() * peopleScale * efficiency * 0.75f;
+        this.expectedProfit = (incomeSource.getModifiedValue() - upkeepSource.getModifiedValue() * 0.75f) * peopleScale;
         this.profit = income - upkeep;
 
-        MutableStat msIncome = copyMaskMCQ(((BaseIndustryAccessor) industry).getIncomeSource(), "cc_econ_population_size", "cc_econ_efficiency");
-        msIncome.modifyMult("cc_econ_population_size", peopleScale, "人口规模");
-        msIncome.modifyMult("cc_econ_efficiency", efficiency, "生产效率");
-        modIncome = new BridgedMutableStat(() -> ((BaseIndustryAccessor)industry).getIncomeSource(), () -> msIncome);
-
-        MutableStat msUpkeep = copyMaskMCQ(((BaseIndustryAccessor) industry).getUpkeepSource(), "cc_econ_population_size", "cc_econ_efficiency");
-        msUpkeep.modifyMult("cc_econ_population_size", peopleScale * 0.75f, "人口规模");
-        msUpkeep.modifyMult("cc_econ_efficiency", efficiency, "生产效率");
-        modUpkeep = new BridgedMutableStat(() -> ((BaseIndustryAccessor)industry).getUpkeepSource(), () -> msUpkeep);
+        // 直写 vanilla 堆：modifyMult 同 key 就地替换，原版 getIncome()/getUpkeep() 直接返回缩放后的数值
+        incomeSource.modifyMult("cc_econ_population_size", peopleScale, "人口规模");
+        incomeSource.modifyMult("cc_econ_efficiency", efficiency, "生产效率");
+        upkeepSource.modifyMult("cc_econ_population_size", peopleScale * 0.75f, "人口规模");
+        upkeepSource.modifyMult("cc_econ_efficiency", efficiency, "生产效率");
     }
     public void updateCollectData() {
         if (industry instanceof IBaseIndustryBridge) {

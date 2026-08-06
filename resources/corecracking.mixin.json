@@ -11,8 +11,6 @@
     "market.CommodityMarketDataMixin",
     "market.CommodityOnMarketMixin",
     "market.MarketAccessor",
-    "market.MarketDemandAccessor",
-    "market.MarketDemandMixin",
     "market.MarketMixin"
   ]
 }

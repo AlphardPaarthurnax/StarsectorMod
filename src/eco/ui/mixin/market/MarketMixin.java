@@ -2,8 +2,6 @@ package eco.ui.mixin.market;
 
 import com.fs.starfarer.campaign.econ.CommodityOnMarket;
 import com.fs.starfarer.campaign.econ.Market;
-import com.fs.starfarer.campaign.econ.MarketDemand;
-import com.fs.starfarer.campaign.econ.MarketDemandData;
 import eco.core.PlanetEconomy;
 import eco.ui.IMarketBridge;
 import org.spongepowered.asm.mixin.Mixin;
@@ -22,15 +20,6 @@ public abstract class MarketMixin implements IMarketBridge {
             for (CommodityOnMarket commodity : ((MarketAccessor) this).getCommoditiesSource()) {
                 if (commodity instanceof IMarketBridge commodityBri) {
                     commodityBri.ECON$dataUpdate(economy);
-                }
-            }
-        }
-        // MarketDemand
-        MarketDemandData marketDemandData = ((MarketAccessor) this).getDemandDataSource();
-        if (marketDemandData != null && marketDemandData.getDemands() != null) {
-            for (MarketDemand marketDemand : marketDemandData.getDemands().values()) {
-                if (marketDemand instanceof IMarketBridge marketDemandBri) {
-                    marketDemandBri.ECON$dataUpdate(economy);
                 }
             }
         }

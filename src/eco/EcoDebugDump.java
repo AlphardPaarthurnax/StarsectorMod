@@ -8,7 +8,7 @@ import com.fs.starfarer.api.campaign.econ.MarketAPI;
 import com.fs.starfarer.api.campaign.econ.MutableCommodityQuantity;
 import com.fs.starfarer.api.combat.MutableStat;
 import eco.core.*;
-import eco.ui.mutable.BridgedMutableCommodityQuantity;
+import eco.ui.mixin.industry.BaseIndustryAccessor;
 import eco.core.trade.TradeDeal;
 import eco.core.trade.TradeOffer;
 import eco.core.trade.TradeStrategy;
@@ -338,19 +338,19 @@ public class EcoDebugDump {
                 .append("</summary>");
 
         sb.append("<table class=\"data-table\">");
-        sb.append("<tr><th>income</th><th>upkeep</th><th>expectedProfit</th><th>profit</th><th>modIncome</th><th>modUpkeep</th></tr>");
+        sb.append("<tr><th>income</th><th>upkeep</th><th>expectedProfit</th><th>profit</th><th>vanillaIncome</th><th>vanillaUpkeep</th></tr>");
         sb.append("<tr><td class=\"pos\">").append(fmtNumFloat(ie.getIncome())).append("</td>")
                 .append("<td class=\"neg\">").append(fmtNumFloat(ie.getUpkeep())).append("</td>")
                 .append("<td>").append(fmtNumFloat(ie.getExpectedProfit())).append("</td>")
                 .append("<td class=\"").append(ie.getProfit() >= 0f ? "pos" : "neg").append("\">")
                 .append(fmtNumFloat(ie.getProfit())).append("</td>")
-                .append("<td>").append(fmtNumFloat(ie.getModIncome().getModifiedValue())).append("</td>")
-                .append("<td>").append(fmtNumFloat(ie.getModUpkeep().getModifiedValue())).append("</td></tr></table>");
+                .append("<td>").append(fmtNumFloat(((BaseIndustryAccessor) ie.getIndustry()).getIncomeSource().getModifiedValue())).append("</td>")
+                .append("<td>").append(fmtNumFloat(((BaseIndustryAccessor) ie.getIndustry()).getUpkeepSource().getModifiedValue())).append("</td></tr></table>");
 
-        sb.append("<div class=\"section-label\">modIncome details:</div>");
-        sb.append(buildStatTable("income", ie.getModIncome()));
-        sb.append("<div class=\"section-label\">modUpkeep details:</div>");
-        sb.append(buildStatTable("upkeep", ie.getModUpkeep()));
+        sb.append("<div class=\"section-label\">income (vanilla) details:</div>");
+        sb.append(buildStatTable("income", ((BaseIndustryAccessor) ie.getIndustry()).getIncomeSource()));
+        sb.append("<div class=\"section-label\">upkeep (vanilla) details:</div>");
+        sb.append(buildStatTable("upkeep", ((BaseIndustryAccessor) ie.getIndustry()).getUpkeepSource()));
 
         Set<String> allIds = new TreeSet<>();
         allIds.addAll(ie.getAllSupply().keySet());
@@ -388,16 +388,16 @@ public class EcoDebugDump {
             sb.append("]</div>");
         }
 
-        Map<String, BridgedMutableCommodityQuantity> modSupply = ie.getAllModSupply();
-        if (!modSupply.isEmpty()) {
-            sb.append("<div class=\"section-label\">modSupply details:</div>");
-            sb.append(buildModTable(modSupply));
+        Map<String, MutableCommodityQuantity> supplyMap = toCommodityMap(ie.getIndustry().getAllSupply());
+        if (!supplyMap.isEmpty()) {
+            sb.append("<div class=\"section-label\">supply (vanilla, scaled) details:</div>");
+            sb.append(buildModTable(supplyMap));
         }
 
-        Map<String, BridgedMutableCommodityQuantity> modDemand = ie.getAllModDemand();
-        if (!modDemand.isEmpty()) {
-            sb.append("<div class=\"section-label\">modDemand details:</div>");
-            sb.append(buildModTable(modDemand));
+        Map<String, MutableCommodityQuantity> demandMap = toCommodityMap(ie.getIndustry().getAllDemand());
+        if (!demandMap.isEmpty()) {
+            sb.append("<div class=\"section-label\">demand (vanilla, scaled) details:</div>");
+            sb.append(buildModTable(demandMap));
         }
 
         sb.append("</details>");
@@ -555,6 +555,14 @@ public class EcoDebugDump {
                 .append("<td class=\"mod-val\">").append(String.format("%+.2f", mod.value)).append("</td>")
                 .append("<td class=\"mod-desc\">").append(esc(mod.desc != null ? mod.desc : "")).append("</td></tr>");
         return sb.toString();
+    }
+
+    private static Map<String, MutableCommodityQuantity> toCommodityMap(List<MutableCommodityQuantity> list) {
+        Map<String, MutableCommodityQuantity> map = new LinkedHashMap<>();
+        for (MutableCommodityQuantity mcq : list) {
+            map.put(mcq.getCommodityId(), mcq);
+        }
+        return map;
     }
 
     private static String buildModTable(Map<String, ? extends MutableCommodityQuantity> modMap) {

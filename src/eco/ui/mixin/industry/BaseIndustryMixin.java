@@ -6,7 +6,6 @@ import com.fs.starfarer.api.impl.campaign.econ.impl.BaseIndustry;
 import com.fs.starfarer.api.util.Pair;
 import eco.core.IndustryEconomy;
 import eco.ui.IBaseIndustryBridge;
-import eco.ui.mutable.BridgedMutableCommodityQuantity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -29,58 +28,6 @@ public abstract class BaseIndustryMixin implements IBaseIndustryBridge {
     @Override
     public void ECON$dataUpdate(IndustryEconomy industryEconomy) {
         this.ECON$industryEconomy = industryEconomy;
-    }
-    @Inject(method = "getAllSupply", at = @At("HEAD"), cancellable = true)
-    public void injectGetAllSupply(CallbackInfoReturnable<List<MutableCommodityQuantity>> cir){
-        if(ECON$industryEconomy == null) return;
-        List<MutableCommodityQuantity> result = new ArrayList<>();
-        for (BridgedMutableCommodityQuantity MCQ : ECON$industryEconomy.getAllModSupply().values()){
-            if (MCQ.getQuantity().getModifiedValue() > 0f){
-                result.add(MCQ);
-            }
-        }
-        cir.setReturnValue(result);
-    }
-    @Inject(method = "getAllDemand", at = @At("HEAD"), cancellable = true)
-    public void injectGetAllDemand(CallbackInfoReturnable<List<MutableCommodityQuantity>> cir){
-        if(ECON$industryEconomy == null) return;
-        List<MutableCommodityQuantity> result = new ArrayList<>();
-        for (BridgedMutableCommodityQuantity MCQ : ECON$industryEconomy.getAllModDemand().values()){
-            if (MCQ.getQuantity().getModifiedValue() > 0f){
-                result.add(MCQ);
-            }
-        }
-        cir.setReturnValue(result);
-    }
-    @Inject(method = "getSupply", at = @At("HEAD"), cancellable = true)
-    public void injectGetSupply(String id, CallbackInfoReturnable<MutableCommodityQuantity> cir){
-        if(ECON$industryEconomy == null) return;
-        if(ECON$industryEconomy.getModSupply(id) == null) {
-            cir.setReturnValue(new MutableCommodityQuantity(id));
-        } else {
-            cir.setReturnValue(ECON$industryEconomy.getModSupply(id));
-        }
-    }
-    @Inject(method = "getDemand", at = @At("HEAD"), cancellable = true)
-    public void injectGetDemand(String id, CallbackInfoReturnable<MutableCommodityQuantity> cir){
-        if(ECON$industryEconomy == null) return;
-        if(ECON$industryEconomy.getModDemand(id) == null){
-            cir.setReturnValue(new MutableCommodityQuantity(id));
-        } else {
-            cir.setReturnValue(ECON$industryEconomy.getModDemand(id));
-        }
-    }
-    @Inject(method = "getIncome", at = @At("HEAD"), cancellable = true)
-    public void injectGetIncome(CallbackInfoReturnable<MutableStat> cir){
-        if(ECON$industryEconomy == null) return;
-        if(ECON$industryEconomy.getModIncome() == null) return;
-        cir.setReturnValue(ECON$industryEconomy.getModIncome());
-    }
-    @Inject(method = "getUpkeep", at = @At("HEAD"), cancellable = true)
-    public void injectGetUpkeep(CallbackInfoReturnable<MutableStat> cir){
-        if(ECON$industryEconomy == null) return;
-        if(ECON$industryEconomy.getModUpkeep() == null) return;
-        cir.setReturnValue(ECON$industryEconomy.getModUpkeep());
     }
     // ***********
     // * mod fix *
