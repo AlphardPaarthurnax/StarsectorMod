@@ -1,7 +1,7 @@
 {
   "required": true,
   "minVersion": "0.8",
-  "package": "eco.mixin.neo.mixin",
+  "package": "eco.ui.mixin",
   "compatibilityLevel": "JAVA_11",
   "mixins": [
     "industry.BaseIndustryAccessor",

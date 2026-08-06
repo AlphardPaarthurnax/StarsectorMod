@@ -4,8 +4,8 @@ import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.FactionAPI;
 import com.fs.starfarer.api.campaign.StarSystemAPI;
 import com.fs.starfarer.api.campaign.econ.MarketAPI;
-import eco.trade.TradeMatcher;
-import eco.trade.TradeOffer;
+import eco.core.trade.TradeMatcher;
+import eco.core.trade.TradeOffer;
 
 import java.io.Serializable;
 import java.util.*;

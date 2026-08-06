@@ -1,12 +1,12 @@
-package eco.mixin.neo.mixin.industry;
+package eco.ui.mixin.industry;
 
 import com.fs.starfarer.api.campaign.econ.MutableCommodityQuantity;
 import com.fs.starfarer.api.combat.MutableStat;
 import com.fs.starfarer.api.impl.campaign.econ.impl.BaseIndustry;
 import com.fs.starfarer.api.util.Pair;
 import eco.core.IndustryEconomy;
-import eco.mixin.neo.IBaseIndustryBridge;
-import eco.mutable.BridgedMutableCommodityQuantity;
+import eco.ui.IBaseIndustryBridge;
+import eco.ui.mutable.BridgedMutableCommodityQuantity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;

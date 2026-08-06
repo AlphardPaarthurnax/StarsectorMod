@@ -1,19 +1,20 @@
 package eco.core;
 
+import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.econ.Industry;
 import com.fs.starfarer.api.campaign.econ.MutableCommodityQuantity;
+import com.fs.starfarer.api.campaign.rules.MemoryAPI;
 import com.fs.starfarer.api.combat.MutableStat;
-import eco.mixin.neo.mixin.industry.BaseIndustryAccessor;
-import eco.mixin.neo.IBaseIndustryBridge;
-import eco.mutable.BridgedMutableCommodityQuantity;
-import eco.mutable.BridgedMutableStat;
+import eco.ui.mixin.industry.BaseIndustryAccessor;
+import eco.ui.IBaseIndustryBridge;
+import eco.ui.mutable.BridgedMutableCommodityQuantity;
+import eco.ui.mutable.BridgedMutableStat;
 
-import java.io.Serializable;
 import java.util.*;
 
 import static eco.core.EconomyService.*;
 
-public class IndustryEconomy implements Serializable {
+public class IndustryEconomy {
     //<editor-fold desc="Inline Data">
     // ***************
     // * Inline Data *

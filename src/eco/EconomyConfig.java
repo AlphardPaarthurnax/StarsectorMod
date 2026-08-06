@@ -1,7 +1,7 @@
 package eco;
 
 import com.fs.starfarer.api.Global;
-import eco.trade.TradeStrategy;
+import eco.core.trade.TradeStrategy;
 import org.json.JSONArray;
 import org.json.JSONObject;
 

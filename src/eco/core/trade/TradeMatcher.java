@@ -1,4 +1,4 @@
-package eco.trade;
+package eco.core.trade;
 
 import com.fs.starfarer.api.util.Misc;
 import eco.EconomyConfig;

@@ -1,4 +1,4 @@
-package eco.mixin.neo.mixin.market;
+package eco.ui.mixin.market;
 
 import com.fs.starfarer.api.combat.MutableStatWithTempMods;
 import com.fs.starfarer.campaign.econ.reach.CommodityMarketData;

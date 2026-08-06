@@ -1,4 +1,4 @@
-package eco.mixin.neo.mixin.industry;
+package eco.ui.mixin.industry;
 
 import com.fs.starfarer.api.impl.campaign.econ.impl.PopulationAndInfrastructure;
 import org.spongepowered.asm.mixin.Mixin;

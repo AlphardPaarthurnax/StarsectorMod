@@ -1,4 +1,4 @@
-package eco.mixin.neo;
+package eco.ui;
 
 import eco.core.PlanetEconomy;
 

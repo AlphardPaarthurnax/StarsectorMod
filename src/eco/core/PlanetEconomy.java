@@ -9,11 +9,11 @@ import com.fs.starfarer.api.combat.MutableStat;
 import com.fs.starfarer.api.combat.MutableStatWithTempMods;
 import com.fs.starfarer.campaign.econ.reach.CommodityMarketData;
 import eco.EconomyConfig;
-import eco.mixin.neo.IMarketBridge;
-import eco.mixin.neo.mixin.market.MarketDemandAccessor;
-import eco.mutable.BridgedMutableStat;
-import eco.trade.TradeDeal;
-import eco.trade.TradeOffer;
+import eco.ui.IMarketBridge;
+import eco.ui.mixin.market.MarketDemandAccessor;
+import eco.ui.mutable.BridgedMutableStat;
+import eco.core.trade.TradeDeal;
+import eco.core.trade.TradeOffer;
 
 import java.io.Serializable;
 import java.util.*;

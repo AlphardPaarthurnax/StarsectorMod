@@ -1,4 +1,4 @@
-package eco.trade;
+package eco.core.trade;
 
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.FactionAPI;

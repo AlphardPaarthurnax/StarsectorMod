@@ -1,4 +1,4 @@
-package eco.trade;
+package eco.core.trade;
 
 public enum TradeStrategy {
     FACTION,

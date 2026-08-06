@@ -1,4 +1,4 @@
-package eco.mutable;
+package eco.ui.mutable;
 
 import com.fs.starfarer.api.combat.MutableStat;
 import com.fs.starfarer.api.combat.StatBonus;

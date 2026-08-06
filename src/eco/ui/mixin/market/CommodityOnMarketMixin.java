@@ -1,9 +1,9 @@
-package eco.mixin.neo.mixin.market;
+package eco.ui.mixin.market;
 
 import com.fs.starfarer.api.combat.MutableStatWithTempMods;
 import com.fs.starfarer.campaign.econ.CommodityOnMarket;
 import eco.core.PlanetEconomy;
-import eco.mixin.neo.IMarketBridge;
+import eco.ui.IMarketBridge;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;

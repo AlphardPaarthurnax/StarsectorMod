@@ -8,10 +8,10 @@ import com.fs.starfarer.api.campaign.econ.MarketAPI;
 import com.fs.starfarer.api.campaign.econ.MutableCommodityQuantity;
 import com.fs.starfarer.api.combat.MutableStat;
 import eco.core.*;
-import eco.mutable.BridgedMutableCommodityQuantity;
-import eco.trade.TradeDeal;
-import eco.trade.TradeOffer;
-import eco.trade.TradeStrategy;
+import eco.ui.mutable.BridgedMutableCommodityQuantity;
+import eco.core.trade.TradeDeal;
+import eco.core.trade.TradeOffer;
+import eco.core.trade.TradeStrategy;
 
 import java.io.*;
 import java.nio.charset.Charset;
