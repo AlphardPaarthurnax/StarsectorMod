@@ -12,6 +12,7 @@ import eco.EconomyConfig;
 import eco.ui.IMarketBridge;
 import eco.core.trade.TradeDeal;
 import eco.core.trade.TradeOffer;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
 import java.util.*;
@@ -136,11 +137,14 @@ public class PlanetEconomy implements Serializable {
     //</editor-fold>;
 
 
+    private Map<String, Float> efficiencyList = new HashMap<>();
+
     public PlanetEconomy(MarketAPI market){
         this.market = market;
         this.planet = market.getPlanetEntity();
     }
     public void updateSource(){
+        efficiencyList.clear();
         baseSupply.clear();
         baseDemand.clear();
         commodityIds.clear();
@@ -154,8 +158,7 @@ public class PlanetEconomy implements Serializable {
         industryEconomys.keySet().removeIf(ind -> !currentSet.contains(ind));
         // 同步
         for(IndustryEconomy industryEco : industryEconomys.values()){
-            industryEco.updateSource(getPeopleScale(market.getSize()));
-            industryEco.updateReferenceSupplyDemand();
+            industryEco.preUpdate(getPeopleScale(market.getSize()));
 
             for(Map.Entry<String, Integer> SI : industryEco.getAllRefSupply().entrySet()){
                 baseSupply.merge(SI.getKey(), SI.getValue(), Integer::sum);
@@ -181,20 +184,28 @@ public class PlanetEconomy implements Serializable {
             }
         }
         // init Stock & Prices
+        /*
         Map<String, Float> effList = new HashMap<>();
         for(Map.Entry<String, Long> SL : stock.entrySet()){
             effList.put(SL.getKey(), (float) ((double) SL.getValue() / baseDemand.getOrDefault(SL.getKey(),0)));
-        }
+        }*/
         // efflist
         for(Map.Entry<Industry, IndustryEconomy> industryEco : industryEconomys.entrySet()){
-            industryEco.getValue().updateEfficiency(effList);
-            industryEco.getValue().updateSupplyDemand();
-            updateStock(industryEco.getValue());
+            industryEco.getValue().Update(this);
         }
         for (IndustryEconomy ie : industryEconomys.values()) {
+            updateStock(ie);
             commodityIds.addAll(ie.getCommodityIds());
         }
     }
+
+    public float getEfficiency(String commodityID) {
+        if(!efficiencyList.containsKey(commodityID)) {
+            efficiencyList.put(commodityID, (float) ((double) stock.getOrDefault(commodityID, 0L) / baseDemand.getOrDefault(commodityID,0)));
+        }
+        return efficiencyList.get(commodityID);
+    }
+
     private void updateStock(IndustryEconomy industryEconomy){
         for(Map.Entry<String, Integer> supplySI : industryEconomy.getAllSupply().entrySet()){
             stock.merge(supplySI.getKey(),(long) supplySI.getValue(),Long::sum);
@@ -318,7 +329,7 @@ public class PlanetEconomy implements Serializable {
         }
 
         for (IndustryEconomy ie : industryEconomys.values()) {
-            ie.updateProfit();
+            ie.proUpdate();
         }
     }
     public void updatePlanetProfit() {
@@ -352,7 +363,7 @@ public class PlanetEconomy implements Serializable {
     }
     public void updateCollectData() {
         for(IndustryEconomy ie : industryEconomys.values()) {
-            ie.updateCollectData();
+            ie.proUpdate();
         }
         if (market instanceof IMarketBridge) {
             ((IMarketBridge) market).ECON$dataUpdate(this);

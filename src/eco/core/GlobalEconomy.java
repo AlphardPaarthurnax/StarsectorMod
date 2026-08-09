@@ -30,6 +30,11 @@ public class GlobalEconomy implements Serializable {
         return factionProfitBreakdowns;
     }
 
+    private int month = -1;
+    public int getMonth() {
+        return month;
+    }
+
     private static GlobalEconomy instance = new GlobalEconomy();
     GlobalEconomy() {}
     public static GlobalEconomy getInstance() { return instance; }
@@ -37,7 +42,8 @@ public class GlobalEconomy implements Serializable {
         if (globalEconomy != null) instance = globalEconomy;
     }
 
-    public void updateSource(){
+    public void updateSource(int month){
+        this.month = month;
         List<MarketAPI> allMarkets = Global.getSector().getEconomy().getMarketsCopy();
         allMarkets.removeIf(m -> !m.isInEconomy() || m.getStarSystem() == null);
 

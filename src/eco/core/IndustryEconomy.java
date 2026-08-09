@@ -8,25 +8,36 @@ import eco.ui.IBaseIndustryBridge;
 
 import java.util.*;
 
-import static eco.core.EconomyService.*;
-
 public class IndustryEconomy {
     //<editor-fold desc="Inline Data">
     // ***************
     // * Inline Data *
     // ***************
     private final Industry industry;
-    private Map<String, MutableCommodityQuantity> sourceSupply = new HashMap<>();
-    private Map<String, MutableCommodityQuantity> sourceDemand = new HashMap<>();
+    private Map<String, MutableCommodityQuantity> supply = new HashMap<>();
+    private Map<String, MutableCommodityQuantity> demand = new HashMap<>();
     private float peopleScale;
     private float efficiency = 1f;
     private Map<String, Float> demandEfficiency = new HashMap<>();
-    public Industry getIndustry(){
+
+    public Industry getIndustry() {
         return industry;
     }
-    public float getPeopleScale() { return peopleScale; }
+
+    public float getPeopleScale() {
+        return peopleScale;
+    }
+
     public float getEfficiency() {
         return efficiency;
+    }
+
+    public Map<String, MutableCommodityQuantity> getSourceSupply() {
+        return supply;
+    }
+
+    public Map<String, MutableCommodityQuantity> getSourceDemand() {
+        return demand;
     }
     //</editor-fold>
 
@@ -40,33 +51,22 @@ public class IndustryEconomy {
     private Set<String> overloadShortages = new HashSet<>();
     private float profit = 0f;
     private float expectedProfit = 0f;
+
     public Set<String> getShortages() {
         return shortages;
     }
+
     public Set<String> getOverloadShortages() {
         return overloadShortages;
     }
+
     public float getProfit() {
         return profit;
     }
-    public float getExpectedProfit() { return expectedProfit; }
 
-        //<editor-fold desc="Useless">
-        private Map<String, Integer> baseSupply = new HashMap<>();
-        private Map<String, Integer> baseDemand = new HashMap<>();
-        public int getBaseSupply(String commodityId){
-            return baseSupply.getOrDefault(commodityId, 0);
-        }
-        public Map<String, Integer> getAllBaseSupply(){
-            return baseSupply;
-        }
-        public int getBaseDemand(String commodityId){
-            return baseDemand.getOrDefault(commodityId, 0);
-        }
-        public Map<String, Integer> getAllBaseDemand(){
-            return baseDemand;
-        }
-        //</editor-fold>
+    public float getExpectedProfit() {
+        return expectedProfit;
+    }
     //</editor-fold>
 
     //<editor-fold desc="UI Data Stream">
@@ -74,9 +74,11 @@ public class IndustryEconomy {
     // * UI Data Stream *
     // ***********************
     private Map<String, Integer> deficit = new HashMap<>();
-    public Map<String, Integer> getAllDeficit(){
+
+    public Map<String, Integer> getAllDeficit() {
         return deficit;
     }
+
     public int getDeficit(String commodityId) {
         return deficit.getOrDefault(commodityId, 0);
     }
@@ -87,181 +89,215 @@ public class IndustryEconomy {
     // *********************
     // * Logic Data Stream *
     // *********************
-    private Map<String, Integer> supply = new HashMap<>();
-    private Map<String, Integer> demand = new HashMap<>();
+    private Map<String, Integer> effSupply = new HashMap<>();
+    private Map<String, Integer> effDemand = new HashMap<>();
     private Map<String, Integer> refSupply = new HashMap<>();
     private Map<String, Integer> refDemand = new HashMap<>();
     private Set<String> commodityIds = new HashSet<>();
     private float income = 0f;
     private float upkeep = 0f;
     private boolean overload = false;
+
     public int getSupply(String commodityId) {
-        return supply.getOrDefault(commodityId, 0);
+        return effSupply.getOrDefault(commodityId, 0);
     }
+
     public Map<String, Integer> getAllSupply() {
-        return supply;
+        return effSupply;
     }
+
     public int getDemand(String commodityId) {
-        return demand.getOrDefault(commodityId, 0);
+        return effDemand.getOrDefault(commodityId, 0);
     }
+
     public Map<String, Integer> getAllDemand() {
-        return demand;
+        return effDemand;
     }
+
     public Set<String> getCommodityIds() {
         return commodityIds;
     }
-    public float getIncome() { return income; }
-    public float getUpkeep() { return upkeep; }
+
+    public float getIncome() {
+        return income;
+    }
+
+    public float getUpkeep() {
+        return upkeep;
+    }
+
     public boolean isOverload() {
         return overload;
     }
-    public Map<String, Integer> getAllRefSupply(){
+
+    public Map<String, Integer> getAllRefSupply() {
         return refSupply;
     }
-    public Map<String, Integer> getAllRefDemand(){
+
+    public Map<String, Integer> getAllRefDemand() {
         return refDemand;
     }
-    public int getRefSupply(String commodityId){
+
+    public int getRefSupply(String commodityId) {
         return refSupply.getOrDefault(commodityId, 0);
     }
-    public int getRefDemand(String commodityId){
+
+    public int getRefDemand(String commodityId) {
         return refDemand.getOrDefault(commodityId, 0);
     }
     //</editor-fold>
 
-
-    public IndustryEconomy(Industry industry){
+    public IndustryEconomy(Industry industry) {
         this.industry = industry;
     }
-    public void updateSource(float peopleScale){
-        sourceSupply.clear();
-        sourceDemand.clear();
-        //baseSupply.clear();
-        //baseDemand.clear();
 
-        Map<String, MutableCommodityQuantity> zeroSupply = ((BaseIndustryAccessor)industry).getSupplySource();
-        Map<String, MutableCommodityQuantity> zeroDemand = ((BaseIndustryAccessor)industry).getDemandSource();
-
-        // 经济堆清理（direct-write 前提）：cc_econ_* 修饰直接写在 vanilla 共享堆上，
-        // 而 vanilla 从不清除未知 key，跨月会残留上月的 cc_econ_*。
-        // 若不先 unmodify，本月 getModifiedInt() 读到的是“纯 base × 上月 peopleScale × 上月 efficiency”，
-        // 再乘一次即双重缩放。因此必须在读取前剥离，拿到干净的 vanilla base。
-        for (MutableCommodityQuantity mcq : zeroSupply.values()) {
-            mcq.getQuantity().unmodify("cc_econ_population_size");
-            mcq.getQuantity().unmodify("cc_econ_efficiency");
-        }
-        for (MutableCommodityQuantity mcq : zeroDemand.values()) {
-            mcq.getQuantity().unmodify("cc_econ_population_size");
-            mcq.getQuantity().unmodify("cc_econ_efficiency");
-        }
-
-        for(Map.Entry<String, MutableCommodityQuantity> zsSM : zeroSupply.entrySet()){
-            if(zsSM.getValue().getQuantity().getModifiedInt() > 0){
-                sourceSupply.put(zsSM.getValue().getCommodityId(), zsSM.getValue());
-                //baseSupply.merge(zsSM.getValue().getCommodityId(), zsSM.getValue().getQuantity().getModifiedInt(), Integer::sum);
-            }
-        }
-        for(Map.Entry<String, MutableCommodityQuantity> zdSM : zeroDemand.entrySet()){
-            if(zdSM.getValue().getQuantity().getModifiedInt() > 0){
-                sourceDemand.put(zdSM.getValue().getCommodityId(), zdSM.getValue());
-                //baseDemand.merge(zdSM.getValue().getCommodityId(), zdSM.getValue().getQuantity().getModifiedInt(), Integer::sum);
-            }
-        }
+    /** Vanilla -> [peopleScale supply demand refSupply refDemand] */
+    public void preUpdate(float peopleScale) {
         this.peopleScale = peopleScale;
-    }
-    public void updateReferenceSupplyDemand(){
+        supply = ((BaseIndustryAccessor) industry).getSupplySource();
+        demand = ((BaseIndustryAccessor) industry).getDemandSource();
+
         refSupply.clear();
         refDemand.clear();
-        for(Map.Entry<String, MutableCommodityQuantity> supplySM : sourceSupply.entrySet()){
-            refSupply.merge(supplySM.getKey(), (int) (supplySM.getValue().getQuantity().getModifiedInt() * peopleScale), Integer::sum);
+
+        for (MutableCommodityQuantity mcq : supply.values()) {
+            if (mcq.getQuantity().getFlatStatMod("cc_debug_monthtimer") == null) {
+                mcq.getQuantity().modifyFlat("cc_debug_monthtimer", -1);
+            }
+            if (mcq.getQuantity().getFlatStatMod("cc_debug_monthtimer").getValue() != GlobalEconomy.getInstance().getMonth() && mcq.getQuantity().getFlatStatMod("cc_debug_inupdate") == null) {
+                mcq.getQuantity().unmodify("cc_econ_population_size");
+                mcq.getQuantity().unmodify("cc_econ_efficiency");
+                mcq.getQuantity().unmodify("cc_debug_monthtimer");
+                mcq.getQuantity().unmodify("cc_debug_monthtimer_sub");
+
+                mcq.getQuantity().modifyFlat("cc_debug_inupdate", 1);
+                mcq.getQuantity().modifyFlat("cc_debug_inupdate_sub", -1);
+                mcq.getQuantity().modifyFlat("cc_debug_monthtimer", GlobalEconomy.getInstance().getMonth());
+                mcq.getQuantity().modifyFlat("cc_debug_monthtimer_sub", -GlobalEconomy.getInstance().getMonth());
+
+                mcq.getQuantity().modifyMult("cc_econ_population_size", peopleScale, "人口规模");
+            }
+
+            refSupply.merge(mcq.getCommodityId(), mcq.getQuantity().getModifiedInt(), Integer::sum);
         }
-        for(Map.Entry<String, MutableCommodityQuantity> demandSM : sourceDemand.entrySet()){
-            refDemand.merge(demandSM.getKey(), (int) (demandSM.getValue().getQuantity().getModifiedInt() * peopleScale), Integer::sum);
+        for (MutableCommodityQuantity mcq : demand.values()) {
+            if (mcq.getQuantity().getFlatStatMod("cc_debug_monthtimer") == null) {
+                mcq.getQuantity().modifyFlat("cc_debug_monthtimer", -1);
+            }
+            if (mcq.getQuantity().getFlatStatMod("cc_debug_monthtimer").getValue() != GlobalEconomy.getInstance().getMonth() && mcq.getQuantity().getFlatStatMod("cc_debug_inupdate") == null) {
+                mcq.getQuantity().unmodify("cc_econ_population_size");
+                mcq.getQuantity().unmodify("cc_econ_efficiency");
+                mcq.getQuantity().unmodify("cc_debug_monthtimer");
+                mcq.getQuantity().unmodify("cc_debug_monthtimer_sub");
+
+                mcq.getQuantity().modifyFlat("cc_debug_inupdate", 1);
+                mcq.getQuantity().modifyFlat("cc_debug_inupdate_sub", -1);
+                mcq.getQuantity().modifyFlat("cc_debug_monthtimer", GlobalEconomy.getInstance().getMonth());
+                mcq.getQuantity().modifyFlat("cc_debug_monthtimer_sub", -GlobalEconomy.getInstance().getMonth());
+
+                mcq.getQuantity().modifyMult("cc_econ_population_size", peopleScale, "人口规模");
+            }
+
+            refDemand.merge(mcq.getCommodityId(), mcq.getQuantity().getModifiedInt(), Integer::sum);
         }
     }
-    public void updateEfficiency(Map<String, Float> efficiencyList){
+    /**<p>planetEconomy -> [efficiency overload shortages overloadShortages]
+     * <p>[efficiency supply demand] -> [supply demand effSupply effDemand deficit]*/
+    public void Update(PlanetEconomy planetEconomy) {
         efficiency = 1.0f;
-        demandEfficiency.clear();
         overload = false;
-        commodityIds.clear();
         shortages.clear();
         overloadShortages.clear();
-        for(Map.Entry<String, MutableCommodityQuantity> supplySM : sourceSupply.entrySet()){
-            commodityIds.add(supplySM.getKey());
-        }
-        for(Map.Entry<String, MutableCommodityQuantity> demandSM : sourceDemand.entrySet()){
-            commodityIds.add(demandSM.getKey());
-            float tempEff = efficiencyList.getOrDefault(demandSM.getKey(), 0f);
 
-            demandEfficiency.put(demandSM.getKey(), Float.isFinite(tempEff) ? Math.max(0f, Math.min(1f, tempEff)) : 0f);
-            efficiency = Math.min(efficiency, tempEff);
+        effSupply.clear();
+        effDemand.clear();
+        deficit.clear();
 
-            if(tempEff < 0.1f){
-                overloadShortages.add(demandSM.getKey());
-            } else if(tempEff < 1.0f){
-                shortages.add(demandSM.getKey());
+        // efficiency
+        for (MutableCommodityQuantity demandMCQ : demand.values()) {
+            if (demandMCQ.getQuantity().getModifiedInt() <= 0) continue;
+
+            float commodityEff = Math.max(0f, Math.min(1f, planetEconomy.getEfficiency(demandMCQ.getCommodityId())));
+
+            efficiency = Math.min(efficiency, commodityEff);
+
+            if (commodityEff < 0.1f) {
+                overloadShortages.add(demandMCQ.getCommodityId());
+            } else if (commodityEff < 1.0f) {
+                shortages.add(demandMCQ.getCommodityId());
             }
         }
-        if(efficiency < 0.1f){
+        if (efficiency < 0.1f) {
             efficiency = 0.1f;
             overload = true;
         }
-    }
-    public void updateSupplyDemand(){
-        supply.clear();
-        demand.clear();
-        deficit.clear();
 
-        for(MutableCommodityQuantity supplyMCQ : sourceSupply.values()){
-            String commodityId = supplyMCQ.getCommodityId();
+        // supply & demand
+        for (MutableCommodityQuantity mcq : supply.values()) {
+            if (mcq.getQuantity().getFlatStatMod("cc_debug_inupdate").getValue() == 1 && mcq.getQuantity().getModifiedInt() > 0) {
+                mcq.getQuantity().modifyMult("cc_econ_efficiency", efficiency, "生产效率");
 
-            // 读取前剥离 cc_econ_*（同 updateSource 的理由：防止堆上残留导致双重缩放）
-            supplyMCQ.getQuantity().unmodify("cc_econ_population_size");
-            supplyMCQ.getQuantity().unmodify("cc_econ_efficiency");
+                effSupply.merge(mcq.getCommodityId(), mcq.getQuantity().getModifiedInt(), Integer::sum);
 
-            supply.merge(commodityId, (int) (supplyMCQ.getQuantity().getModifiedInt() * peopleScale * efficiency), Integer::sum);
-
-            // 直写 vanilla 堆：modifyMult 同 key 就地替换，原版 getAllSupply()/UI 直接看到缩放后的产量
-            supplyMCQ.getQuantity().modifyMult("cc_econ_population_size", peopleScale, "人口规模");
-            supplyMCQ.getQuantity().modifyMult("cc_econ_efficiency", efficiency, "生产效率");
+                mcq.getQuantity().unmodify("cc_debug_inupdate");
+                mcq.getQuantity().unmodify("cc_debug_inupdate_sub");
+            }
         }
-        for(MutableCommodityQuantity demandMCQ : sourceDemand.values()){
-            String commodityId = demandMCQ.getCommodityId();
+        for (MutableCommodityQuantity mcq : demand.values()) {
+            if (mcq.getQuantity().getFlatStatMod("cc_debug_inupdate").getValue() == 1 && mcq.getQuantity().getModifiedInt() > 0) {
+                mcq.getQuantity().modifyMult("cc_econ_efficiency", efficiency, "生产效率");
 
-            demandMCQ.getQuantity().unmodify("cc_econ_population_size");
-            demandMCQ.getQuantity().unmodify("cc_econ_efficiency");
+                effDemand.merge(mcq.getCommodityId(), mcq.getQuantity().getModifiedInt(), Integer::sum);
 
-            demand.merge(commodityId, (int) (demandMCQ.getQuantity().getModifiedInt() * peopleScale * efficiency), Integer::sum);
-
-            demandMCQ.getQuantity().modifyMult("cc_econ_population_size", peopleScale, "人口规模");
-            demandMCQ.getQuantity().modifyMult("cc_econ_efficiency", efficiency, "生产效率");
-
-            deficit.merge(commodityId, (int) (demandMCQ.getQuantity().getModifiedInt() * peopleScale * (1 - demandEfficiency.getOrDefault(commodityId,0f))), Integer::sum);
+                mcq.getQuantity().unmodify("cc_debug_inupdate");
+                mcq.getQuantity().unmodify("cc_debug_inupdate_sub");
+            }
+        }
+        for (String commodity : effDemand.keySet()) {
+            deficit.merge(commodity, refDemand.getOrDefault(commodity, 0) - effDemand.getOrDefault(commodity, 0), Integer::sum);
         }
     }
-    public void updateProfit() {
+    /**<p> Vanilla -> Vanilla
+     * <p> Vanilla -> [income upkeep profit expectedProfit]*/
+    public void proUpdate() {
         MutableStat incomeSource = ((BaseIndustryAccessor) industry).getIncomeSource();
         MutableStat upkeepSource = ((BaseIndustryAccessor) industry).getUpkeepSource();
 
-        // cc_econ_* 修饰直接写在 vanilla income/upkeep 堆上，vanilla 从不清除未知 key，
-        // 读取前必须 unmodify，否则读到的 modifiedValue 含上月残留缩放，造成双重缩放
-        incomeSource.unmodify("cc_econ_population_size");
-        incomeSource.unmodify("cc_econ_efficiency");
-        upkeepSource.unmodify("cc_econ_population_size");
-        upkeepSource.unmodify("cc_econ_efficiency");
+        if (incomeSource.getFlatStatMod("cc_debug_monthtimer") == null)
+            incomeSource.modifyFlat("cc_debug_monthtimer", -1);
+        if (upkeepSource.getFlatStatMod("cc_debug_monthtimer") == null)
+            upkeepSource.modifyFlat("cc_debug_monthtimer", -1);
 
-        this.income = incomeSource.getModifiedValue() * peopleScale * efficiency;
-        this.upkeep = upkeepSource.getModifiedValue() * peopleScale * efficiency * 0.75f;
-        this.expectedProfit = (incomeSource.getModifiedValue() - upkeepSource.getModifiedValue() * 0.75f) * peopleScale;
+        if (incomeSource.getFlatStatMod("cc_debug_monthtimer").getValue() != GlobalEconomy.getInstance().getMonth()) {
+            incomeSource.unmodify("cc_econ_population_size");
+            incomeSource.unmodify("cc_econ_efficiency");
+            incomeSource.unmodify("cc_debug_monthtimer");
+            incomeSource.unmodify("cc_debug_monthtimer_sub");
+
+            incomeSource.modifyFlat("cc_debug_monthtimer", GlobalEconomy.getInstance().getMonth());
+            incomeSource.modifyFlat("cc_debug_monthtimer_sub", -GlobalEconomy.getInstance().getMonth());
+
+            incomeSource.modifyMult("cc_econ_population_size", peopleScale, "人口规模");
+            incomeSource.modifyMult("cc_econ_efficiency", efficiency, "生产效率");
+        }
+        if (upkeepSource.getFlatStatMod("cc_debug_monthtimer").getValue() != GlobalEconomy.getInstance().getMonth()) {
+            upkeepSource.unmodify("cc_econ_population_size");
+            upkeepSource.unmodify("cc_econ_efficiency");
+            upkeepSource.unmodify("cc_debug_monthtimer");
+            upkeepSource.unmodify("cc_debug_monthtimer_sub");
+
+            upkeepSource.modifyFlat("cc_debug_monthtimer", GlobalEconomy.getInstance().getMonth());
+            upkeepSource.modifyFlat("cc_debug_monthtimer_sub", -GlobalEconomy.getInstance().getMonth());
+
+            upkeepSource.modifyMult("cc_econ_population_size", peopleScale * 0.75f, "人口规模");
+            upkeepSource.modifyMult("cc_econ_efficiency", efficiency, "生产效率");
+        }
+
+        this.income = incomeSource.getModifiedValue();
+        this.upkeep = upkeepSource.getModifiedValue();
         this.profit = income - upkeep;
+        this.expectedProfit = profit / efficiency;
 
-        // 直写 vanilla 堆：modifyMult 同 key 就地替换，原版 getIncome()/getUpkeep() 直接返回缩放后的数值
-        incomeSource.modifyMult("cc_econ_population_size", peopleScale, "人口规模");
-        incomeSource.modifyMult("cc_econ_efficiency", efficiency, "生产效率");
-        upkeepSource.modifyMult("cc_econ_population_size", peopleScale * 0.75f, "人口规模");
-        upkeepSource.modifyMult("cc_econ_efficiency", efficiency, "生产效率");
-    }
-    public void updateCollectData() {
         if (industry instanceof IBaseIndustryBridge) {
             ((IBaseIndustryBridge) industry).ECON$dataUpdate(this);
         }

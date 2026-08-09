@@ -351,6 +351,8 @@ public class EcoDebugDump {
         sb.append(buildStatTable("income", ((BaseIndustryAccessor) ie.getIndustry()).getIncomeSource()));
         sb.append("<div class=\"section-label\">upkeep (vanilla) details:</div>");
         sb.append(buildStatTable("upkeep", ((BaseIndustryAccessor) ie.getIndustry()).getUpkeepSource()));
+        sb.append("<div class=\"section-label\">incomeSource/upkeepSource proUpdate markers:</div>");
+        sb.append(buildProfitSourceMarkerTable(ie));
 
         Set<String> allIds = new TreeSet<>();
         allIds.addAll(ie.getAllSupply().keySet());
@@ -388,6 +390,9 @@ public class EcoDebugDump {
             sb.append("]</div>");
         }
 
+        sb.append("<div class=\"section-label\">IndustryEconomy source supply/demand preUpdate markers:</div>");
+        sb.append(buildPreUpdateMarkerTable(ie));
+
         Map<String, MutableCommodityQuantity> supplyMap = toCommodityMap(ie.getIndustry().getAllSupply());
         if (!supplyMap.isEmpty()) {
             sb.append("<div class=\"section-label\">supply (vanilla, scaled) details:</div>");
@@ -402,6 +407,132 @@ public class EcoDebugDump {
 
         sb.append("</details>");
         return sb.toString();
+    }
+
+    private static String buildProfitSourceMarkerTable(IndustryEconomy ie) {
+        BaseIndustryAccessor accessor = (BaseIndustryAccessor) ie.getIndustry();
+        StringBuilder sb = new StringBuilder();
+        sb.append("<table class=\"mod-table\">");
+        sb.append("<tr><th>stat</th><th>base</th><th>modified</th>")
+                .append("<th>cc_debug_inupdate</th><th>cc_debug_inupdate_sub</th>")
+                .append("<th>cc_debug_monthtimer</th><th>cc_debug_monthtimer_sub</th><th>check</th></tr>");
+        appendProfitSourceMarkerRow(sb, "incomeSource", accessor.getIncomeSource());
+        appendProfitSourceMarkerRow(sb, "upkeepSource", accessor.getUpkeepSource());
+        sb.append("</table>");
+        return sb.toString();
+    }
+
+    private static void appendProfitSourceMarkerRow(StringBuilder sb, String name, MutableStat stat) {
+        MutableStat.StatMod inUpdate = stat.getFlatStatMod("cc_debug_inupdate");
+        MutableStat.StatMod inUpdateSub = stat.getFlatStatMod("cc_debug_inupdate_sub");
+        MutableStat.StatMod monthTimer = stat.getFlatStatMod("cc_debug_monthtimer");
+        MutableStat.StatMod monthTimerSub = stat.getFlatStatMod("cc_debug_monthtimer_sub");
+
+        boolean allPresent = inUpdate != null && inUpdateSub != null
+                && monthTimer != null && monthTimerSub != null;
+        boolean balanced = allPresent
+                && Math.abs(inUpdate.value + inUpdateSub.value) < 0.0001f
+                && Math.abs(monthTimer.value + monthTimerSub.value) < 0.0001f;
+        boolean currentMonth = allPresent
+                && Math.abs(monthTimer.value - GlobalEconomy.getInstance().getMonth()) < 0.0001f;
+
+        String check;
+        String checkClass;
+        if (!allPresent) {
+            check = "MISSING";
+            checkClass = "neg";
+        } else if (!balanced) {
+            check = "UNBALANCED";
+            checkClass = "neg";
+        } else if (!currentMonth) {
+            check = "STALE";
+            checkClass = "neg";
+        } else {
+            check = "OK";
+            checkClass = "pos";
+        }
+
+        sb.append("<tr><td class=\"commodity\">").append(esc(name)).append("</td>")
+                .append("<td>").append(String.format("%.1f", stat.getBaseValue())).append("</td>")
+                .append("<td>").append(String.format("%.1f", stat.getModifiedValue())).append("</td>");
+        appendDebugMarkerCell(sb, inUpdate);
+        appendDebugMarkerCell(sb, inUpdateSub);
+        appendDebugMarkerCell(sb, monthTimer);
+        appendDebugMarkerCell(sb, monthTimerSub);
+        sb.append("<td class=\"").append(checkClass).append("\">").append(check).append("</td></tr>");
+    }
+
+    private static String buildPreUpdateMarkerTable(IndustryEconomy ie) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<table class=\"mod-table\">");
+        sb.append("<tr><th>side</th><th>commodityId</th><th>base</th><th>modified</th>")
+                .append("<th>cc_debug_inupdate</th><th>cc_debug_inupdate_sub</th>")
+                .append("<th>cc_debug_monthtimer</th><th>cc_debug_monthtimer_sub</th><th>check</th></tr>");
+
+        appendPreUpdateMarkerRows(sb, "supply", ie.getSourceSupply());
+        appendPreUpdateMarkerRows(sb, "demand", ie.getSourceDemand());
+
+        if (ie.getSourceSupply().isEmpty() && ie.getSourceDemand().isEmpty()) {
+            sb.append("<tr><td class=\"zero\" colspan=\"9\">(no source supply/demand)</td></tr>");
+        }
+        sb.append("</table>");
+        return sb.toString();
+    }
+
+    private static void appendPreUpdateMarkerRows(StringBuilder sb, String side,
+                                                   Map<String, MutableCommodityQuantity> values) {
+        List<Map.Entry<String, MutableCommodityQuantity>> sorted = new ArrayList<>(values.entrySet());
+        sorted.sort(Map.Entry.comparingByKey());
+
+        for (Map.Entry<String, MutableCommodityQuantity> entry : sorted) {
+            MutableStat stat = entry.getValue().getQuantity();
+            MutableStat.StatMod inUpdate = stat.getFlatStatMod("cc_debug_inupdate");
+            MutableStat.StatMod inUpdateSub = stat.getFlatStatMod("cc_debug_inupdate_sub");
+            MutableStat.StatMod monthTimer = stat.getFlatStatMod("cc_debug_monthtimer");
+            MutableStat.StatMod monthTimerSub = stat.getFlatStatMod("cc_debug_monthtimer_sub");
+
+            boolean allPresent = inUpdate != null && inUpdateSub != null
+                    && monthTimer != null && monthTimerSub != null;
+            boolean balanced = allPresent
+                    && Math.abs(inUpdate.value + inUpdateSub.value) < 0.0001f
+                    && Math.abs(monthTimer.value + monthTimerSub.value) < 0.0001f;
+            boolean currentMonth = allPresent
+                    && Math.abs(monthTimer.value - GlobalEconomy.getInstance().getMonth()) < 0.0001f;
+
+            String check;
+            String checkClass;
+            if (!allPresent) {
+                check = "MISSING";
+                checkClass = "neg";
+            } else if (!balanced) {
+                check = "UNBALANCED";
+                checkClass = "neg";
+            } else if (!currentMonth) {
+                check = "STALE";
+                checkClass = "neg";
+            } else {
+                check = "OK";
+                checkClass = "pos";
+            }
+
+            sb.append("<tr><td>").append(side).append("</td>")
+                    .append("<td class=\"commodity\">").append(esc(entry.getKey())).append("</td>")
+                    .append("<td>").append(String.format("%.1f", stat.getBaseValue())).append("</td>")
+                    .append("<td>").append(String.format("%.1f", stat.getModifiedValue())).append("</td>");
+            appendDebugMarkerCell(sb, inUpdate);
+            appendDebugMarkerCell(sb, inUpdateSub);
+            appendDebugMarkerCell(sb, monthTimer);
+            appendDebugMarkerCell(sb, monthTimerSub);
+            sb.append("<td class=\"").append(checkClass).append("\">").append(check).append("</td></tr>");
+        }
+    }
+
+    private static void appendDebugMarkerCell(StringBuilder sb, MutableStat.StatMod mod) {
+        if (mod == null) {
+            sb.append("<td class=\"neg\">MISSING</td>");
+        } else {
+            sb.append("<td class=\"mod-val\">").append(String.format("%+.2f", mod.value)).append("</td>");
+        }
     }
 
     private static String dumpTradeOfferTable(Map<String, TradeOffer> offers, boolean isSupply) {

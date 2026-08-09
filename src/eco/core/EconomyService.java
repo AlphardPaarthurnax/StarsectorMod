@@ -24,7 +24,7 @@ public class EconomyService implements EconomyTickListener {
         lastProcessedMonth = month;
 
         activate();
-        globalEconomy.updateSource();
+        globalEconomy.updateSource(month);
         globalEconomy.matchTrade();
         globalEconomy.updateSupplyDemand();
         globalEconomy.updateTradeStock();
