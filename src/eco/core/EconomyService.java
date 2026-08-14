@@ -30,8 +30,19 @@ public class EconomyService implements EconomyTickListener {
         globalEconomy.updateTradeStock();
         globalEconomy.updatePrices();
 
-        globalEconomy.updateCollectData();
         EcoDebugDump.dump();
+    }
+    public static float getPeopleScale(int size) {
+        if (size <= 1) return 0.01f;
+        if (size == 2) return 0.10f;
+        if (size == 3) return 1.0f;
+
+        float result = 1.0f;
+        final float r = 0.772f;
+        for (int s = 4; s <= size; s++) {
+            result *= (1.0f + 9.0f * (float) Math.pow(r, s - 4));
+        }
+        return result;
     }
     public static float computePriceMultiplier(int supply, int demand, long stock) {
         float targetStock = demand * 3f;

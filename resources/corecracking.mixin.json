@@ -4,6 +4,7 @@
   "package": "eco.ui.mixin",
   "compatibilityLevel": "JAVA_11",
   "mixins": [
+    "MutableStatMixin",
     "industry.BaseIndustryAccessor",
     "industry.BaseIndustryMixin",
     "industry.intnewMixin",

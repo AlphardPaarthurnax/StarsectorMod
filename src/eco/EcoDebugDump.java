@@ -256,17 +256,6 @@ public class EcoDebugDump {
             sb.append("</table>");
         }
 
-        if (!pe.getCommodityIds().isEmpty()) {
-            sb.append("<div class=\"kv\"><span class=\"kv-label\">commodityIds:</span> [");
-            List<String> sorted = new ArrayList<>(pe.getCommodityIds());
-            Collections.sort(sorted);
-            for (int i = 0; i < sorted.size(); i++) {
-                if (i > 0) sb.append(", ");
-                sb.append("<span class=\"kv-cyan\">").append(esc(sorted.get(i))).append("</span>");
-            }
-            sb.append("]</div>");
-        }
-
         Map<String, TradeOffer> supplyOffers = pe.getSupplyOffers();
         sb.append("<div class=\"section-label\">Supply Offers");
         sb.append(supplyOffers.isEmpty() ? " (none)" : ":");

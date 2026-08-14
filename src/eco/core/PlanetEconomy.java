@@ -3,8 +3,10 @@ package eco.core;
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.FactionAPI;
 import com.fs.starfarer.api.campaign.PlanetAPI;
+import com.fs.starfarer.api.campaign.econ.CommodityOnMarketAPI;
 import com.fs.starfarer.api.campaign.econ.Industry;
 import com.fs.starfarer.api.campaign.econ.MarketAPI;
+import com.fs.starfarer.api.campaign.econ.MarketDemandAPI;
 import com.fs.starfarer.api.combat.MutableStat;
 import com.fs.starfarer.api.combat.MutableStatWithTempMods;
 import com.fs.starfarer.campaign.econ.reach.CommodityMarketData;
@@ -12,12 +14,12 @@ import eco.EconomyConfig;
 import eco.ui.IMarketBridge;
 import eco.core.trade.TradeDeal;
 import eco.core.trade.TradeOffer;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
 import java.util.*;
 
 import static eco.core.EconomyService.computePriceMultiplier;
+import static eco.core.EconomyService.getPeopleScale;
 
 /**
  * <p> baseSupply       满效率和
@@ -33,18 +35,18 @@ public class PlanetEconomy implements Serializable {
     // ***************
     private final MarketAPI market;
     private Map<String, Integer> netSD = new HashMap<>();
-    private Map<String, Integer> baseSupply = new HashMap<>();
-    private Map<String, Integer> baseDemand = new HashMap<>();
+    private Map<String, Integer> refSupply = new HashMap<>();
+    private Map<String, Integer> refDemand = new HashMap<>();
     private Map<String, Integer> actualSupply = new HashMap<>();
     private Map<String, Integer> actualDemand = new HashMap<>();
     public MarketAPI getMarket(){
         return market;
     }
     public Map<String, Integer> getNetSD() { return netSD; }
-    public Map<String, Integer> getAllBaseSupply() { return baseSupply; }
-    public int getBaseSupply(String commodityId) { return baseSupply.getOrDefault(commodityId, 0); }
-    public Map<String, Integer> getAllBaseDemand() { return baseDemand; }
-    public int getBaseDemand(String commodityId) { return baseDemand.getOrDefault(commodityId, 0); }
+    public Map<String, Integer> getAllBaseSupply() { return refSupply; }
+    public int getBaseSupply(String commodityId) { return refSupply.getOrDefault(commodityId, 0); }
+    public Map<String, Integer> getAllBaseDemand() { return refDemand; }
+    public int getBaseDemand(String commodityId) { return refDemand.getOrDefault(commodityId, 0); }
     public Map<String, Integer> getAllActualSupply() { return actualSupply; }
     public int getActualSupply(String commodityId) { return actualSupply.getOrDefault(commodityId, 0); }
     public Map<String, Integer> getAllActualDemand() { return actualDemand; }
@@ -56,7 +58,6 @@ public class PlanetEconomy implements Serializable {
     // * Useless Data Stream *
     // ***********************
     private final PlanetAPI planet;
-    private Set<String> commodityIds = new HashSet<>();
     private Profit profit = new Profit();
     private Map<String, Integer> domesticDemand = new HashMap<>();
     public PlanetAPI getPlanet(){
@@ -66,9 +67,6 @@ public class PlanetEconomy implements Serializable {
     public int getMarketSize() { return market.getSize(); }
     public String getMarketName() { return market.getName(); }
     public String getFactionId() { return market.getFaction().getId(); }
-    public Set<String> getCommodityIds() {
-        return commodityIds;
-    }
     public Profit getProfit() {
         if (profit == null) profit = new Profit();
         return profit;
@@ -96,8 +94,8 @@ public class PlanetEconomy implements Serializable {
     private Map<Industry, IndustryEconomy> industryEconomys = new HashMap<>();
     private Map<String, Long> stock = new HashMap<>();
     private Map<String, Float> prices = new HashMap<>();
-    private Map<String, TradeOffer> supply = new HashMap<>();
-    private Map<String, TradeOffer> demand = new HashMap<>();
+    private Map<String, TradeOffer> supplyTradeOffer = new HashMap<>();
+    private Map<String, TradeOffer> demandTradeOffer = new HashMap<>();
     private List<TradeDeal> importTrade = new ArrayList<>();
     private List<TradeDeal> exportTrade = new ArrayList<>();
     public IndustryEconomy getIndustryEconomy(Industry industry){
@@ -121,8 +119,8 @@ public class PlanetEconomy implements Serializable {
     public Map<String, Float> getAllPrice() {
         return prices;
     }
-    public Map<String, TradeOffer> getSupplyOffers() { return supply; }
-    public Map<String, TradeOffer> getDemandOffers() { return demand; }
+    public Map<String, TradeOffer> getSupplyOffers() { return supplyTradeOffer; }
+    public Map<String, TradeOffer> getDemandOffers() { return demandTradeOffer; }
     public List<TradeDeal> getImportTrade() { return importTrade; }
     public List<TradeDeal> getExportTrade() { return exportTrade; }
     public void addImportTrade(TradeDeal tradeDeal){
@@ -136,19 +134,23 @@ public class PlanetEconomy implements Serializable {
     }
     //</editor-fold>;
 
-
+    private static final String MONTH_TIMER_KEY = "cc_debug_monthtimer";
+    private static final String DEBUG_MONTH_TIMER_SUB = "cc_debug_monthtimer_sub";
+    private static final String MARKET_DEMAND_PREFIX = "c3ore_";
     private Map<String, Float> efficiencyList = new HashMap<>();
 
     public PlanetEconomy(MarketAPI market){
         this.market = market;
         this.planet = market.getPlanetEntity();
     }
-    public void updateSource(){
+    public void preUpdate() {
         efficiencyList.clear();
-        baseSupply.clear();
-        baseDemand.clear();
-        commodityIds.clear();
+        refSupply.clear();
+        refDemand.clear();
+        importTrade.clear();
+        exportTrade.clear();
 
+        // 同步 industry
         for (Industry industry : market.getIndustries()) {
             if (!industryEconomys.containsKey(industry)) {
                 industryEconomys.put(industry, new IndustryEconomy(industry));
@@ -156,18 +158,21 @@ public class PlanetEconomy implements Serializable {
         }
         Set<Industry> currentSet = new HashSet<>(market.getIndustries());
         industryEconomys.keySet().removeIf(ind -> !currentSet.contains(ind));
-        // 同步
+
+        // 从 IE 更新数据
         for(IndustryEconomy industryEco : industryEconomys.values()){
+
             industryEco.preUpdate(getPeopleScale(market.getSize()));
 
             for(Map.Entry<String, Integer> SI : industryEco.getAllRefSupply().entrySet()){
-                baseSupply.merge(SI.getKey(), SI.getValue(), Integer::sum);
+                refSupply.merge(SI.getKey(), SI.getValue(), Integer::sum);
             }
             for(Map.Entry<String, Integer> DI : industryEco.getAllRefDemand().entrySet()){
-                baseDemand.merge(DI.getKey(), DI.getValue(), Integer::sum);
+                refDemand.merge(DI.getKey(), DI.getValue(), Integer::sum);
             }
         }
-        // 更新
+
+        // 初始化 库存/价格
         if (stock.isEmpty()){
             for(IndustryEconomy industryEco : industryEconomys.values()){
                 for(Map.Entry<String, Integer> SI : industryEco.getAllRefSupply().entrySet()){
@@ -183,52 +188,30 @@ public class PlanetEconomy implements Serializable {
                 prices.put(SL.getKey(), Global.getSettings().getCommoditySpec(SL.getKey()).getBasePrice());
             }
         }
-        // init Stock & Prices
-        /*
-        Map<String, Float> effList = new HashMap<>();
-        for(Map.Entry<String, Long> SL : stock.entrySet()){
-            effList.put(SL.getKey(), (float) ((double) SL.getValue() / baseDemand.getOrDefault(SL.getKey(),0)));
-        }*/
-        // efflist
-        for(Map.Entry<Industry, IndustryEconomy> industryEco : industryEconomys.entrySet()){
-            industryEco.getValue().Update(this);
-        }
-        for (IndustryEconomy ie : industryEconomys.values()) {
-            updateStock(ie);
-            commodityIds.addAll(ie.getCommodityIds());
-        }
     }
-
-    public float getEfficiency(String commodityID) {
-        if(!efficiencyList.containsKey(commodityID)) {
-            efficiencyList.put(commodityID, (float) ((double) stock.getOrDefault(commodityID, 0L) / baseDemand.getOrDefault(commodityID,0)));
-        }
-        return efficiencyList.get(commodityID);
-    }
-
-    private void updateStock(IndustryEconomy industryEconomy){
-        for(Map.Entry<String, Integer> supplySI : industryEconomy.getAllSupply().entrySet()){
-            stock.merge(supplySI.getKey(),(long) supplySI.getValue(),Long::sum);
-        }
-        if(!industryEconomy.isOverload()){
-            for(Map.Entry<String, Integer> demandSI : industryEconomy.getAllDemand().entrySet()){
-                stock.merge(demandSI.getKey(),(long) -demandSI.getValue(),Long::sum);
-            }
-        }
-    }
-    public void updateSupplyDemand(){
+    public void Update() {
         netSD.clear();
-        supply.clear();
-        demand.clear();
+        supplyTradeOffer.clear();
+        demandTradeOffer.clear();
         actualSupply.clear();
         actualDemand.clear();
         domesticDemand.clear();
-        importTrade.clear();
-        exportTrade.clear();
-        available.clear();
 
-        Map<String, MutableStat> demandMStB = new HashMap<>();
+        for(IndustryEconomy industryEconomy : industryEconomys.values()){
+            industryEconomy.Update(this);
 
+            // 库存更新 - SD
+            for(Map.Entry<String, Integer> supplySI : industryEconomy.getAllSupply().entrySet()){
+                stock.merge(supplySI.getKey(),(long) supplySI.getValue(),Long::sum);
+            }
+            if(!industryEconomy.isOverload()){
+                for(Map.Entry<String, Integer> demandSI : industryEconomy.getAllDemand().entrySet()){
+                    stock.merge(demandSI.getKey(),(long) -demandSI.getValue(),Long::sum);
+                }
+            }
+        }
+
+        // 真实值与期望值
         for (IndustryEconomy ie : industryEconomys.values()) {
             for (Map.Entry<String, Integer> s : ie.getAllSupply().entrySet()) {
                 actualSupply.merge(s.getKey(), s.getValue(), Integer::sum);
@@ -236,21 +219,22 @@ public class PlanetEconomy implements Serializable {
             }
             for (Map.Entry<String, Integer> d : ie.getAllRefDemand().entrySet()) {
                 netSD.merge(d.getKey(), -d.getValue(), Integer::sum);
-                demandMStB.computeIfAbsent(market.getCommodityData(d.getKey()).getDemandClass(), i -> new MutableStat(0))
-                        .modifyFlat("c3ore_" + ie.getIndustry().getCurrentName(), d.getValue(), ie.getIndustry().getCurrentName());
             }
             for (Map.Entry<String, Integer> d : ie.getAllDemand().entrySet()){
                 actualDemand.merge(d.getKey(), d.getValue(), Integer::sum);
             }
         }
 
+        // 生成 TradeOffer
         for (Map.Entry<String, Integer> netSDSI : netSD.entrySet()){
             if(netSDSI.getValue() > 0){
-                supply.put(netSDSI.getKey(), new TradeOffer(this, netSDSI.getKey(), netSDSI.getValue(), getPrice(netSDSI.getKey())));
+                supplyTradeOffer.put(netSDSI.getKey(), new TradeOffer(this, netSDSI.getKey(), netSDSI.getValue(), getPrice(netSDSI.getKey())));
             } else if(netSDSI.getValue() < 0){
-                demand.put(netSDSI.getKey(), new TradeOffer(this, netSDSI.getKey(), netSDSI.getValue(), getPrice(netSDSI.getKey())));
+                demandTradeOffer.put(netSDSI.getKey(), new TradeOffer(this, netSDSI.getKey(), netSDSI.getValue(), getPrice(netSDSI.getKey())));
             }
         }
+
+        // 计算内销
         for (Map.Entry<String, Integer> entry : actualSupply.entrySet()) {
             String commodityId = entry.getKey();
             int amount = Math.min(entry.getValue(), actualDemand.getOrDefault(commodityId, 0));
@@ -258,83 +242,32 @@ public class PlanetEconomy implements Serializable {
                 domesticDemand.put(commodityId, amount);
             }
         }
-        for(Map.Entry<String, MutableStat> SMS : demandMStB.entrySet()){
-            // 直写 vanilla MarketDemand.getDemand() 堆（不再走 bridge/mixin）：
-            // 先移除该需求堆上所有上月的 c3ore_* 修饰（产业可能消失/改名/停供，旧 key 不会
-            // 被 vanilla 清除），再写入本月各产业聚合后的需求。
-            MutableStat demandStat = market.getDemand(SMS.getKey()).getDemand();
-            for (String source : new ArrayList<>(demandStat.getFlatMods().keySet())) {
-                if (source.startsWith("c3ore_")) {
-                    demandStat.unmodify(source);
-                }
-            }
-            for (Map.Entry<String, MutableStat.StatMod> mod : SMS.getValue().getFlatMods().entrySet()) {
-                demandStat.modifyFlat(mod.getKey(), mod.getValue().value, mod.getValue().desc);
-            }
-        }
-
-        Map<String, Map<FactionAPI, Integer>> importSFI = new HashMap<>();
-        Map<String, Map<FactionAPI, Integer>> exportSFI = new HashMap<>();
-        for(TradeDeal tradeDeal : importTrade) {
-            importSFI.computeIfAbsent(tradeDeal.getItemId(), i -> new HashMap<>())
-                    .merge(tradeDeal.getFromFaction(), tradeDeal.getItemNum(), Integer::sum);
-        }
-        for(TradeDeal tradeDeal : exportTrade) {
-            exportSFI.computeIfAbsent(tradeDeal.getItemId(), i -> new HashMap<>())
-                    .merge(tradeDeal.getToFaction(), tradeDeal.getItemNum(), Integer::sum);
-        }
-
-        for(String commodityId : commodityIds) {
-            MutableStatWithTempMods MSWTM = new MutableStatWithTempMods(0);
-            MSWTM.modifyFlat(CommodityMarketData.KEY_LOCAL, actualSupply.getOrDefault(commodityId,0),"本地产量");
-
-            Map<FactionAPI, Integer> importFI = importSFI.getOrDefault(commodityId, new HashMap<>());
-            for(Map.Entry<FactionAPI, Integer> FI : importFI.entrySet()){
-                MSWTM.modifyFlat(CommodityMarketData.KEY_IMPORTS + "_" + FI.getKey().getId(), FI.getValue(),"从 " + FI.getKey().getDisplayName() + " 进口");
-            }
-
-            Map<FactionAPI, Integer> exportFI = exportSFI.getOrDefault(commodityId, new HashMap<>());
-            for(Map.Entry<FactionAPI, Integer> FI : exportFI.entrySet()){
-                MSWTM.modifyFlat(CommodityMarketData.KEY_SHORTAGE + "_" + FI.getKey().getId(), -FI.getValue(),"向 " + FI.getKey().getDisplayName() + " 出口");
-            }
-
-            MSWTM.modifyFlat(CommodityMarketData.KEY_LOWACCESS, -actualDemand.getOrDefault(commodityId,0),"本地消耗");
-
-            available.put(commodityId, MSWTM);
-        }
     }
-    public void updateTradeStock() {
-        for (TradeDeal d : importTrade) {
-            stock.merge(d.getItemId(), (long) d.getItemNum(), Long::sum);
-        }
-        for (TradeDeal d : exportTrade) {
-            stock.merge(d.getItemId(), (long) -d.getItemNum(), Long::sum);
-        }
-    }
-    public void updatePlanetPrices(Map<String, Float> systemPrices) {
+    public void postUpdate(Map<String, Float> systemPrices) {
         prices.clear();
+        getProfit().clear();
+
+        // 价格
         Set<String> allIds = new HashSet<>();
         allIds.addAll(actualSupply.keySet());
-        allIds.addAll(baseDemand.keySet());
+        allIds.addAll(refDemand.keySet());
         allIds.addAll(stock.keySet());
-
         for (String cid : allIds) {
             float sysPrice = systemPrices.getOrDefault(cid,
                     Global.getSettings().getCommoditySpec(cid).getBasePrice());
             int s = actualSupply.getOrDefault(cid, 0);
-            int d = baseDemand.getOrDefault(cid, 0);
+            int d = refDemand.getOrDefault(cid, 0);
             long st = stock.getOrDefault(cid, 0L);
             float mult = computePriceMultiplier(s, d, st);
             prices.put(cid, sysPrice * mult);
         }
 
+        // IE 后更新
         for (IndustryEconomy ie : industryEconomys.values()) {
-            ie.proUpdate();
+            ie.postUpdate();
         }
-    }
-    public void updatePlanetProfit() {
-        getProfit().clear();
 
+        // 利润
         for (IndustryEconomy ie : industryEconomys.values()) {
             getProfit().addIncome(ie.getIncome());
             getProfit().addUpkeep(ie.getUpkeep());
@@ -348,25 +281,157 @@ public class PlanetEconomy implements Serializable {
         for(Map.Entry<String, Integer> dd : domesticDemand.entrySet()){
             getProfit().addTax(dd.getValue() * getPrice(dd.getKey()) * EconomyConfig.getInternalTradeTaxRate());
         }
-    }
-    private static float getPeopleScale(int size) {
-        if (size <= 1) return 0.01f;
-        if (size == 2) return 0.10f;
-        if (size == 3) return 1.0f;
 
-        float result = 1.0f;
-        final float r = 0.772f;
-        for (int s = 4; s <= size; s++) {
-            result *= (1.0f + 9.0f * (float) Math.pow(r, s - 4));
-        }
-        return result;
-    }
-    public void updateCollectData() {
-        for(IndustryEconomy ie : industryEconomys.values()) {
-            ie.proUpdate();
-        }
+        // 市场需求 MutableStat
+        postUpdateMarketDemandStats();
+
+        // 商品可用量 MutableStatWithTempMods
+        postUpdateAvailableStats();
+
         if (market instanceof IMarketBridge) {
             ((IMarketBridge) market).ECON$dataUpdate(this);
+        }
+    }
+
+    private void postUpdateMarketDemandStats() {
+        Map<String, Map<String, Integer>> demandByClass = new HashMap<>();
+        Map<String, Map<String, String>> demandDescriptions = new HashMap<>();
+        Set<String> demandClasses = new HashSet<>();
+
+        // 收集市场中全部需求类别，确保产业消失后也能清理遗留的 c3ore_* 修正。
+        for (CommodityOnMarketAPI commodity : market.getAllCommodities()) {
+            if (commodity.getDemandClass() != null) {
+                demandClasses.add(commodity.getDemandClass());
+            }
+        }
+
+        for (IndustryEconomy ie : industryEconomys.values()) {
+            String industryName = ie.getIndustry().getCurrentName();
+            String source = MARKET_DEMAND_PREFIX + industryName;
+
+            for (Map.Entry<String, Integer> entry : ie.getAllRefDemand().entrySet()) {
+                CommodityOnMarketAPI commodity = market.getCommodityData(entry.getKey());
+                if (commodity == null || commodity.getDemandClass() == null) continue;
+
+                String demandClass = commodity.getDemandClass();
+                demandClasses.add(demandClass);
+                demandByClass.computeIfAbsent(demandClass, key -> new LinkedHashMap<>())
+                        .merge(source, entry.getValue(), Integer::sum);
+                demandDescriptions.computeIfAbsent(demandClass, key -> new HashMap<>())
+                        .put(source, industryName);
+            }
+        }
+
+        for (String demandClass : demandClasses) {
+            MarketDemandAPI marketDemand = market.getDemand(demandClass);
+            if (marketDemand == null) continue;
+
+            MutableStat demandStat = marketDemand.getDemand();
+
+            if (demandStat.getFlatStatMod(MONTH_TIMER_KEY) == null) {
+                demandStat.modifyFlat(MONTH_TIMER_KEY, -1);
+            }
+            if (demandStat.getFlatStatMod(MONTH_TIMER_KEY).getValue() == GlobalEconomy.getInstance().getMonth())
+                continue;
+
+            for (String source : new ArrayList<>(demandStat.getFlatMods().keySet())) {
+                if (source.startsWith(MARKET_DEMAND_PREFIX)) {
+                    demandStat.unmodify(source);
+                }
+            }
+
+            Map<String, Integer> classDemand = demandByClass.getOrDefault(demandClass, Collections.emptyMap());
+            Map<String, String> classDescriptions = demandDescriptions.getOrDefault(demandClass, Collections.emptyMap());
+            for (Map.Entry<String, Integer> entry : classDemand.entrySet()) {
+                demandStat.modifyFlat(entry.getKey(), entry.getValue(), classDescriptions.get(entry.getKey()));
+            }
+
+            demandStat.unmodify(MONTH_TIMER_KEY);
+            demandStat.unmodify(DEBUG_MONTH_TIMER_SUB);
+            demandStat.modifyFlat(MONTH_TIMER_KEY, GlobalEconomy.getInstance().getMonth());
+            demandStat.modifyFlat(DEBUG_MONTH_TIMER_SUB, -GlobalEconomy.getInstance().getMonth());
+        }
+    }
+
+    private void postUpdateAvailableStats() {
+        Map<String, Map<FactionAPI, Integer>> importsByCommodity = new HashMap<>();
+        Map<String, Map<FactionAPI, Integer>> exportsByCommodity = new HashMap<>();
+        Set<String> allIds = new HashSet<>();
+        allIds.addAll(actualSupply.keySet());
+        allIds.addAll(actualDemand.keySet());
+        allIds.addAll(stock.keySet());
+
+        for (TradeDeal tradeDeal : importTrade) {
+            allIds.add(tradeDeal.getItemId());
+            importsByCommodity.computeIfAbsent(tradeDeal.getItemId(), key -> new HashMap<>())
+                    .merge(tradeDeal.getFromFaction(), tradeDeal.getItemNum(), Integer::sum);
+        }
+        for (TradeDeal tradeDeal : exportTrade) {
+            allIds.add(tradeDeal.getItemId());
+            exportsByCommodity.computeIfAbsent(tradeDeal.getItemId(), key -> new HashMap<>())
+                    .merge(tradeDeal.getToFaction(), tradeDeal.getItemNum(), Integer::sum);
+        }
+
+        // 清空引用表后，CommodityOnMarketMixin 会回落到原版 getter；随后保存原版 Stat 引用。
+        available.clear();
+        for (String commodityId : allIds) {
+            CommodityOnMarketAPI commodity = market.getCommodityData(commodityId);
+            if (commodity == null) continue;
+
+            MutableStatWithTempMods availableStat = commodity.getAvailableStat();
+            if (availableStat == null) continue;
+            available.put(commodityId, availableStat);
+
+            if (availableStat.getFlatStatMod(MONTH_TIMER_KEY) == null) {
+                availableStat.modifyFlat(MONTH_TIMER_KEY, -1);
+            }
+            if (availableStat.getFlatStatMod(MONTH_TIMER_KEY).getValue() == GlobalEconomy.getInstance().getMonth())
+                continue;
+
+            for (String source : new ArrayList<>(availableStat.getFlatMods().keySet())) {
+                availableStat.unmodify(source);
+            }
+
+            availableStat.modifyFlat(CommodityMarketData.KEY_LOCAL,
+                    actualSupply.getOrDefault(commodityId, 0), "本地产量");
+
+            for (Map.Entry<FactionAPI, Integer> entry : importsByCommodity
+                    .getOrDefault(commodityId, Collections.emptyMap()).entrySet()) {
+                FactionAPI faction = entry.getKey();
+                availableStat.modifyFlat(CommodityMarketData.KEY_IMPORTS + "_" + faction.getId(),
+                        entry.getValue(), "从 " + faction.getDisplayName() + " 进口");
+            }
+
+            for (Map.Entry<FactionAPI, Integer> entry : exportsByCommodity
+                    .getOrDefault(commodityId, Collections.emptyMap()).entrySet()) {
+                FactionAPI faction = entry.getKey();
+                availableStat.modifyFlat(CommodityMarketData.KEY_SHORTAGE + "_" + faction.getId(),
+                        -entry.getValue(), "向 " + faction.getDisplayName() + " 出口");
+            }
+
+            availableStat.modifyFlat(CommodityMarketData.KEY_LOWACCESS,
+                    -actualDemand.getOrDefault(commodityId, 0), "本地消耗");
+
+            availableStat.unmodify(MONTH_TIMER_KEY);
+            availableStat.unmodify(DEBUG_MONTH_TIMER_SUB);
+            availableStat.modifyFlat(MONTH_TIMER_KEY, GlobalEconomy.getInstance().getMonth());
+            availableStat.modifyFlat(DEBUG_MONTH_TIMER_SUB, -GlobalEconomy.getInstance().getMonth());
+        }
+    }
+    // 对IE
+    public float getEfficiency(String commodityID) {
+        if(!efficiencyList.containsKey(commodityID)) {
+            efficiencyList.put(commodityID, (float) ((double) stock.getOrDefault(commodityID, 0L) / refDemand.getOrDefault(commodityID,0)));
+        }
+        return efficiencyList.get(commodityID);
+    }
+    // 对SE
+    public void updateTradeStock() {
+        for (TradeDeal d : importTrade) {
+            stock.merge(d.getItemId(), (long) d.getItemNum(), Long::sum);
+        }
+        for (TradeDeal d : exportTrade) {
+            stock.merge(d.getItemId(), (long) -d.getItemNum(), Long::sum);
         }
     }
 }

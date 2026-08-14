@@ -150,9 +150,4 @@ public class GlobalEconomy implements Serializable {
             factionProfits.put(entry.getKey(), entry.getValue().getNetProfit());
         }
     }
-    public void updateCollectData() {
-        for (SystemEconomy se : systemEconomys.values()) {
-            se.updateCollectData();
-        }
-    }
 }

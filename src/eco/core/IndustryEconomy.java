@@ -19,23 +19,18 @@ public class IndustryEconomy {
     private float peopleScale;
     private float efficiency = 1f;
     private Map<String, Float> demandEfficiency = new HashMap<>();
-
     public Industry getIndustry() {
         return industry;
     }
-
     public float getPeopleScale() {
         return peopleScale;
     }
-
     public float getEfficiency() {
         return efficiency;
     }
-
     public Map<String, MutableCommodityQuantity> getSourceSupply() {
         return supply;
     }
-
     public Map<String, MutableCommodityQuantity> getSourceDemand() {
         return demand;
     }
@@ -151,6 +146,10 @@ public class IndustryEconomy {
         this.industry = industry;
     }
 
+    private static final String MONTH_TIMER_KEY = "cc_debug_monthtimer";
+    private static final String IN_UPDATE_KEY = "cc_debug_inupdate";
+    private static final String SUB_SUFFIX_KEY = "_sub";
+
     /** Vanilla -> [peopleScale supply demand refSupply refDemand] */
     public void preUpdate(float peopleScale) {
         this.peopleScale = peopleScale;
@@ -161,19 +160,19 @@ public class IndustryEconomy {
         refDemand.clear();
 
         for (MutableCommodityQuantity mcq : supply.values()) {
-            if (mcq.getQuantity().getFlatStatMod("cc_debug_monthtimer") == null) {
-                mcq.getQuantity().modifyFlat("cc_debug_monthtimer", -1);
+            if (mcq.getQuantity().getFlatStatMod(MONTH_TIMER_KEY) == null) {
+                mcq.getQuantity().modifyFlat(MONTH_TIMER_KEY, -1);
             }
-            if (mcq.getQuantity().getFlatStatMod("cc_debug_monthtimer").getValue() != GlobalEconomy.getInstance().getMonth() && mcq.getQuantity().getFlatStatMod("cc_debug_inupdate") == null) {
+            if (mcq.getQuantity().getFlatStatMod(MONTH_TIMER_KEY).getValue() != GlobalEconomy.getInstance().getMonth() && mcq.getQuantity().getFlatStatMod(IN_UPDATE_KEY) == null) {
                 mcq.getQuantity().unmodify("cc_econ_population_size");
                 mcq.getQuantity().unmodify("cc_econ_efficiency");
-                mcq.getQuantity().unmodify("cc_debug_monthtimer");
-                mcq.getQuantity().unmodify("cc_debug_monthtimer_sub");
+                mcq.getQuantity().unmodify(MONTH_TIMER_KEY);
+                mcq.getQuantity().unmodify(MONTH_TIMER_KEY + SUB_SUFFIX_KEY);
 
-                mcq.getQuantity().modifyFlat("cc_debug_inupdate", 1);
-                mcq.getQuantity().modifyFlat("cc_debug_inupdate_sub", -1);
-                mcq.getQuantity().modifyFlat("cc_debug_monthtimer", GlobalEconomy.getInstance().getMonth());
-                mcq.getQuantity().modifyFlat("cc_debug_monthtimer_sub", -GlobalEconomy.getInstance().getMonth());
+                mcq.getQuantity().modifyFlat(IN_UPDATE_KEY, 1);
+                mcq.getQuantity().modifyFlat(IN_UPDATE_KEY + SUB_SUFFIX_KEY, -1);
+                mcq.getQuantity().modifyFlat(MONTH_TIMER_KEY, GlobalEconomy.getInstance().getMonth());
+                mcq.getQuantity().modifyFlat(MONTH_TIMER_KEY + SUB_SUFFIX_KEY, -GlobalEconomy.getInstance().getMonth());
 
                 mcq.getQuantity().modifyMult("cc_econ_population_size", peopleScale, "人口规模");
             }
@@ -181,19 +180,19 @@ public class IndustryEconomy {
             refSupply.merge(mcq.getCommodityId(), mcq.getQuantity().getModifiedInt(), Integer::sum);
         }
         for (MutableCommodityQuantity mcq : demand.values()) {
-            if (mcq.getQuantity().getFlatStatMod("cc_debug_monthtimer") == null) {
-                mcq.getQuantity().modifyFlat("cc_debug_monthtimer", -1);
+            if (mcq.getQuantity().getFlatStatMod(MONTH_TIMER_KEY) == null) {
+                mcq.getQuantity().modifyFlat(MONTH_TIMER_KEY, -1);
             }
-            if (mcq.getQuantity().getFlatStatMod("cc_debug_monthtimer").getValue() != GlobalEconomy.getInstance().getMonth() && mcq.getQuantity().getFlatStatMod("cc_debug_inupdate") == null) {
+            if (mcq.getQuantity().getFlatStatMod(MONTH_TIMER_KEY).getValue() != GlobalEconomy.getInstance().getMonth() && mcq.getQuantity().getFlatStatMod(IN_UPDATE_KEY) == null) {
                 mcq.getQuantity().unmodify("cc_econ_population_size");
                 mcq.getQuantity().unmodify("cc_econ_efficiency");
-                mcq.getQuantity().unmodify("cc_debug_monthtimer");
-                mcq.getQuantity().unmodify("cc_debug_monthtimer_sub");
+                mcq.getQuantity().unmodify(MONTH_TIMER_KEY);
+                mcq.getQuantity().unmodify(MONTH_TIMER_KEY + SUB_SUFFIX_KEY);
 
-                mcq.getQuantity().modifyFlat("cc_debug_inupdate", 1);
-                mcq.getQuantity().modifyFlat("cc_debug_inupdate_sub", -1);
-                mcq.getQuantity().modifyFlat("cc_debug_monthtimer", GlobalEconomy.getInstance().getMonth());
-                mcq.getQuantity().modifyFlat("cc_debug_monthtimer_sub", -GlobalEconomy.getInstance().getMonth());
+                mcq.getQuantity().modifyFlat(IN_UPDATE_KEY, 1);
+                mcq.getQuantity().modifyFlat(IN_UPDATE_KEY + SUB_SUFFIX_KEY, -1);
+                mcq.getQuantity().modifyFlat(MONTH_TIMER_KEY, GlobalEconomy.getInstance().getMonth());
+                mcq.getQuantity().modifyFlat(MONTH_TIMER_KEY + SUB_SUFFIX_KEY, -GlobalEconomy.getInstance().getMonth());
 
                 mcq.getQuantity().modifyMult("cc_econ_population_size", peopleScale, "人口规模");
             }
@@ -234,23 +233,23 @@ public class IndustryEconomy {
 
         // supply & demand
         for (MutableCommodityQuantity mcq : supply.values()) {
-            if (mcq.getQuantity().getFlatStatMod("cc_debug_inupdate").getValue() == 1 && mcq.getQuantity().getModifiedInt() > 0) {
+            if (mcq.getQuantity().getFlatStatMod(IN_UPDATE_KEY).getValue() == 1 && mcq.getQuantity().getModifiedInt() > 0) {
                 mcq.getQuantity().modifyMult("cc_econ_efficiency", efficiency, "生产效率");
 
                 effSupply.merge(mcq.getCommodityId(), mcq.getQuantity().getModifiedInt(), Integer::sum);
 
-                mcq.getQuantity().unmodify("cc_debug_inupdate");
-                mcq.getQuantity().unmodify("cc_debug_inupdate_sub");
+                mcq.getQuantity().unmodify(IN_UPDATE_KEY);
+                mcq.getQuantity().unmodify(IN_UPDATE_KEY + SUB_SUFFIX_KEY);
             }
         }
         for (MutableCommodityQuantity mcq : demand.values()) {
-            if (mcq.getQuantity().getFlatStatMod("cc_debug_inupdate").getValue() == 1 && mcq.getQuantity().getModifiedInt() > 0) {
+            if (mcq.getQuantity().getFlatStatMod(IN_UPDATE_KEY).getValue() == 1 && mcq.getQuantity().getModifiedInt() > 0) {
                 mcq.getQuantity().modifyMult("cc_econ_efficiency", efficiency, "生产效率");
 
                 effDemand.merge(mcq.getCommodityId(), mcq.getQuantity().getModifiedInt(), Integer::sum);
 
-                mcq.getQuantity().unmodify("cc_debug_inupdate");
-                mcq.getQuantity().unmodify("cc_debug_inupdate_sub");
+                mcq.getQuantity().unmodify(IN_UPDATE_KEY);
+                mcq.getQuantity().unmodify(IN_UPDATE_KEY + SUB_SUFFIX_KEY);
             }
         }
         for (String commodity : effDemand.keySet()) {
@@ -259,35 +258,35 @@ public class IndustryEconomy {
     }
     /**<p> Vanilla -> Vanilla
      * <p> Vanilla -> [income upkeep profit expectedProfit]*/
-    public void proUpdate() {
+    public void postUpdate() {
         MutableStat incomeSource = ((BaseIndustryAccessor) industry).getIncomeSource();
         MutableStat upkeepSource = ((BaseIndustryAccessor) industry).getUpkeepSource();
 
-        if (incomeSource.getFlatStatMod("cc_debug_monthtimer") == null)
-            incomeSource.modifyFlat("cc_debug_monthtimer", -1);
-        if (upkeepSource.getFlatStatMod("cc_debug_monthtimer") == null)
-            upkeepSource.modifyFlat("cc_debug_monthtimer", -1);
+        if (incomeSource.getFlatStatMod(MONTH_TIMER_KEY) == null)
+            incomeSource.modifyFlat(MONTH_TIMER_KEY, -1);
+        if (upkeepSource.getFlatStatMod(MONTH_TIMER_KEY) == null)
+            upkeepSource.modifyFlat(MONTH_TIMER_KEY, -1);
 
-        if (incomeSource.getFlatStatMod("cc_debug_monthtimer").getValue() != GlobalEconomy.getInstance().getMonth()) {
+        if (incomeSource.getFlatStatMod(MONTH_TIMER_KEY).getValue() != GlobalEconomy.getInstance().getMonth()) {
             incomeSource.unmodify("cc_econ_population_size");
             incomeSource.unmodify("cc_econ_efficiency");
-            incomeSource.unmodify("cc_debug_monthtimer");
-            incomeSource.unmodify("cc_debug_monthtimer_sub");
+            incomeSource.unmodify(MONTH_TIMER_KEY);
+            incomeSource.unmodify(MONTH_TIMER_KEY + SUB_SUFFIX_KEY);
 
-            incomeSource.modifyFlat("cc_debug_monthtimer", GlobalEconomy.getInstance().getMonth());
-            incomeSource.modifyFlat("cc_debug_monthtimer_sub", -GlobalEconomy.getInstance().getMonth());
+            incomeSource.modifyFlat(MONTH_TIMER_KEY, GlobalEconomy.getInstance().getMonth());
+            incomeSource.modifyFlat(MONTH_TIMER_KEY + SUB_SUFFIX_KEY, -GlobalEconomy.getInstance().getMonth());
 
             incomeSource.modifyMult("cc_econ_population_size", peopleScale, "人口规模");
             incomeSource.modifyMult("cc_econ_efficiency", efficiency, "生产效率");
         }
-        if (upkeepSource.getFlatStatMod("cc_debug_monthtimer").getValue() != GlobalEconomy.getInstance().getMonth()) {
+        if (upkeepSource.getFlatStatMod(MONTH_TIMER_KEY).getValue() != GlobalEconomy.getInstance().getMonth()) {
             upkeepSource.unmodify("cc_econ_population_size");
             upkeepSource.unmodify("cc_econ_efficiency");
-            upkeepSource.unmodify("cc_debug_monthtimer");
-            upkeepSource.unmodify("cc_debug_monthtimer_sub");
+            upkeepSource.unmodify(MONTH_TIMER_KEY);
+            upkeepSource.unmodify(MONTH_TIMER_KEY + SUB_SUFFIX_KEY);
 
-            upkeepSource.modifyFlat("cc_debug_monthtimer", GlobalEconomy.getInstance().getMonth());
-            upkeepSource.modifyFlat("cc_debug_monthtimer_sub", -GlobalEconomy.getInstance().getMonth());
+            upkeepSource.modifyFlat(MONTH_TIMER_KEY, GlobalEconomy.getInstance().getMonth());
+            upkeepSource.modifyFlat(MONTH_TIMER_KEY + SUB_SUFFIX_KEY, -GlobalEconomy.getInstance().getMonth());
 
             upkeepSource.modifyMult("cc_econ_population_size", peopleScale * 0.75f, "人口规模");
             upkeepSource.modifyMult("cc_econ_efficiency", efficiency, "生产效率");

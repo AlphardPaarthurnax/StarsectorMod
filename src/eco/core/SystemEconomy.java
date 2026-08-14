@@ -88,11 +88,15 @@ public class SystemEconomy implements Serializable {
         planetEconomys.keySet().removeIf(m -> !markets.contains(m));
 
         for (PlanetEconomy pe : planetEconomys.values()) {
-            pe.updateSource();
-            pe.updateSupplyDemand();
-            commodityIds.addAll(pe.getCommodityIds());
-        }
+            pe.preUpdate();
+            pe.Update();
 
+            commodityIds.addAll(pe.getAllBaseSupply().keySet());
+            commodityIds.addAll(pe.getAllBaseDemand().keySet());
+            commodityIds.addAll(pe.getAllActualSupply().keySet());
+            commodityIds.addAll(pe.getAllActualDemand().keySet());
+            commodityIds.addAll(pe.getAllStock().keySet());
+        }
         matchTrade();
     }
 
@@ -173,19 +177,14 @@ public class SystemEconomy implements Serializable {
         factionProfits.clear();
         getFactionProfitBreakdowns().clear();
         for (PlanetEconomy pe : planetEconomys.values()) {
-            pe.updatePlanetPrices(systemPrices);
-            pe.updatePlanetProfit();
+            pe.postUpdate(systemPrices);
+
             FactionAPI faction = pe.getMarket().getFaction();
             getFactionProfitBreakdowns().computeIfAbsent(faction, key -> new Profit())
                     .add(pe.getProfit());
         }
         for (Map.Entry<FactionAPI, Profit> entry : getFactionProfitBreakdowns().entrySet()) {
             factionProfits.put(entry.getKey(), entry.getValue().getNetProfit());
-        }
-    }
-    public void updateCollectData() {
-        for (PlanetEconomy pe : planetEconomys.values()) {
-            pe.updateCollectData();
         }
     }
 }
